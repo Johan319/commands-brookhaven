@@ -1,0 +1,340 @@
+-- Admin Commands for Brookhaven with Titlebar Rank Display
+-- Default prefix: ;
+-- Commands: tp <player>, goto <player>, to <player>, prefix <new prefix>
+
+local prefix = ";"
+local player = game.Players.LocalPlayer
+
+-- ============================================
+-- MANUAL GROUP RANKS (Edit these!)
+-- Add players and their ranks from your group
+-- ============================================
+local groupRanks = {
+    -- ["Username"] = "Rank Name",
+    ["Johan"] = "Owner",        -- Replace with actual group owner
+    ["sigmaboy2341814"] = "Co-Owner",
+    ["PlayerName2"] = "Head Admin",
+    ["PlayerName3"] = "Admin",
+    [""] = "Moderator",
+    ["PlayerName5"] = "VIP",
+}
+
+-- Function to get a player's rank from the table
+local function getPlayerRank(plr)
+    local username = plr.Name
+    local displayName = plr.DisplayName
+    
+    -- Check by username first
+    if groupRanks[username] then
+        return groupRanks[username]
+    end
+    -- Check by display name
+    for name, rank in pairs(groupRanks) do
+        if displayName:lower() == name:lower() then
+            return rank
+        end
+    end
+    return "Member" -- Default rank if not in the list
+end
+
+-- Create Titlebar GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AdminTitlebar"
+screenGui.Parent = player.PlayerGui
+screenGui.ResetOnSpawn = false
+
+-- Main titlebar frame (top of screen)
+local titlebar = Instance.new("Frame")
+titlebar.Size = UDim2.new(1, 0, 0, 40)
+titlebar.Position = UDim2.new(0, 0, 0, 0)
+titlebar.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+titlebar.BackgroundTransparency = 0.15
+titlebar.BorderSizePixel = 0
+titlebar.Parent = screenGui
+
+-- Top border line (accent color)
+local topBorder = Instance.new("Frame")
+topBorder.Size = UDim2.new(1, 0, 0, 2)
+topBorder.Position = UDim2.new(0, 0, 0, 0)
+topBorder.BackgroundColor3 = Color3.fromRGB(255, 215, 0) -- Gold for Owner
+topBorder.BorderSizePixel = 0
+topBorder.Parent = titlebar
+
+-- Update border color based on your rank
+local function updateBorderColor()
+    local yourRank = getPlayerRank(player)
+    if yourRank == "Owner" then
+        topBorder.BackgroundColor3 = Color3.fromRGB(255, 215, 0) -- Gold
+    elseif yourRank == "Co-Owner" or yourRank == "Head Admin" then
+        topBorder.BackgroundColor3 = Color3.fromRGB(0, 150, 255) -- Blue
+    elseif yourRank == "Admin" then
+        topBorder.BackgroundColor3 = Color3.fromRGB(0, 255, 100) -- Green
+    else
+        topBorder.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- Gray
+    end
+end
+
+-- Left section: Your Rank and Name
+local leftSection = Instance.new("Frame")
+leftSection.Size = UDim2.new(0, 200, 1, 0)
+leftSection.Position = UDim2.new(0, 10, 0, 0)
+leftSection.BackgroundTransparency = 1
+leftSection.Parent = titlebar
+
+-- Your Rank Label
+local rankLabel = Instance.new("TextLabel")
+rankLabel.Size = UDim2.new(0, 80, 1, 0)
+rankLabel.Position = UDim2.new(0, 0, 0, 0)
+rankLabel.BackgroundTransparency = 1
+rankLabel.Text = getPlayerRank(player)
+rankLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+rankLabel.TextSize = 18
+rankLabel.Font = Enum.Font.GothamBold
+rankLabel.TextXAlignment = Enum.TextXAlignment.Left
+rankLabel.Parent = leftSection
+
+-- Your Name Label
+local nameLabel = Instance.new("TextLabel")
+nameLabel.Size = UDim2.new(0, 120, 1, 0)
+nameLabel.Position = UDim2.new(0, 85, 0, 0)
+nameLabel.BackgroundTransparency = 1
+nameLabel.Text = player.Name
+nameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+nameLabel.TextSize = 16
+nameLabel.Font = Enum.Font.Gotham
+nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+nameLabel.Parent = leftSection
+
+-- Separator
+local separator = Instance.new("Frame")
+separator.Size = UDim2.new(0, 1, 0, 25)
+separator.Position = UDim2.new(0, 205, 0, 7)
+separator.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
+separator.BorderSizePixel = 0
+separator.Parent = titlebar
+
+-- Middle section: Command info
+local middleSection = Instance.new("Frame")
+middleSection.Size = UDim2.new(0, 300, 1, 0)
+middleSection.Position = UDim2.new(0, 220, 0, 0)
+middleSection.BackgroundTransparency = 1
+middleSection.Parent = titlebar
+
+local prefixLabel = Instance.new("TextLabel")
+prefixLabel.Size = UDim2.new(0, 60, 1, 0)
+prefixLabel.Position = UDim2.new(0, 0, 0, 0)
+prefixLabel.BackgroundTransparency = 1
+prefixLabel.Text = "Prefix: " .. prefix
+prefixLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+prefixLabel.TextSize = 14
+prefixLabel.Font = Enum.Font.Gotham
+prefixLabel.TextXAlignment = Enum.TextXAlignment.Left
+prefixLabel.Parent = middleSection
+
+local commandLabel = Instance.new("TextLabel")
+commandLabel.Size = UDim2.new(1, -60, 1, 0)
+commandLabel.Position = UDim2.new(0, 65, 0, 0)
+commandLabel.BackgroundTransparency = 1
+commandLabel.Text = "Commands: tp / goto / to <name>"
+commandLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+commandLabel.TextSize = 13
+commandLabel.Font = Enum.Font.Gotham
+commandLabel.TextXAlignment = Enum.TextXAlignment.Left
+commandLabel.Parent = middleSection
+
+-- Right section: Command counter and toggle
+local rightSection = Instance.new("Frame")
+rightSection.Size = UDim2.new(0, 120, 1, 0)
+rightSection.Position = UDim2.new(1, -130, 0, 0)
+rightSection.BackgroundTransparency = 1
+rightSection.Parent = titlebar
+
+local counterLabel = Instance.new("TextLabel")
+counterLabel.Size = UDim2.new(0, 50, 1, 0)
+counterLabel.Position = UDim2.new(0, 0, 0, 0)
+counterLabel.BackgroundTransparency = 1
+counterLabel.Text = "0"
+counterLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+counterLabel.TextSize = 18
+counterLabel.Font = Enum.Font.GothamBold
+counterLabel.TextXAlignment = Enum.TextXAlignment.Right
+counterLabel.Parent = rightSection
+
+local commandsText = Instance.new("TextLabel")
+commandsText.Size = UDim2.new(0, 60, 1, 0)
+commandsText.Position = UDim2.new(0, 55, 0, 0)
+commandsText.BackgroundTransparency = 1
+commandsText.Text = "cmds"
+commandsText.TextColor3 = Color3.fromRGB(120, 120, 140)
+commandsText.TextSize = 12
+commandsText.Font = Enum.Font.Gotham
+commandsText.TextXAlignment = Enum.TextXAlignment.Left
+commandsText.Parent = rightSection
+
+-- Log panel (drops down from titlebar when clicked)
+local logPanel = Instance.new("Frame")
+logPanel.Size = UDim2.new(0, 350, 0, 250)
+logPanel.Position = UDim2.new(1, -360, 0, 40)
+logPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+logPanel.BackgroundTransparency = 0.1
+logPanel.BorderSizePixel = 1
+logPanel.BorderColor3 = Color3.fromRGB(255, 215, 0)
+logPanel.Visible = false
+logPanel.Parent = screenGui
+
+local logCorner = Instance.new("UICorner")
+logCorner.CornerRadius = UDim.new(0, 6)
+logCorner.Parent = logPanel
+
+local logTitle = Instance.new("TextLabel")
+logTitle.Size = UDim2.new(1, 0, 0, 30)
+logTitle.Position = UDim2.new(0, 0, 0, 0)
+logTitle.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+logTitle.BackgroundTransparency = 0.2
+logTitle.Text = "COMMAND LOG"
+logTitle.TextColor3 = Color3.fromRGB(0, 0, 0)
+logTitle.TextSize = 16
+logTitle.Font = Enum.Font.GothamBold
+logTitle.Parent = logPanel
+
+local logList = Instance.new("ScrollingFrame")
+logList.Size = UDim2.new(1, 0, 1, -30)
+logList.Position = UDim2.new(0, 0, 0, 30)
+logList.BackgroundTransparency = 1
+logList.CanvasSize = UDim2.new(0, 0, 0, 0)
+logList.Parent = logPanel
+
+local logLayout = Instance.new("UIListLayout")
+logLayout.Padding = UDim.new(0, 2)
+logLayout.Parent = logList
+
+-- Toggle log panel when clicking counter area
+local rightSectionButton = Instance.new("TextButton")
+rightSectionButton.Size = UDim2.new(1, 0, 1, 0)
+rightSectionButton.Position = UDim2.new(0, 0, 0, 0)
+rightSectionButton.BackgroundTransparency = 1
+rightSectionButton.Text = ""
+rightSectionButton.Parent = rightSection
+
+local commandCount = 0
+local logs = {}
+
+local function addLog(message)
+    table.insert(logs, 1, os.date("%H:%M:%S") .. " - " .. message)
+    if #logs > 20 then table.remove(logs) end
+    
+    -- Clear and rebuild logs
+    for _, child in pairs(logList:GetChildren()) do
+        if child:IsA("TextLabel") then child:Destroy() end
+    end
+    
+    for i, log in ipairs(logs) do
+        local logLabel = Instance.new("TextLabel")
+        logLabel.Size = UDim2.new(1, 0, 0, 20)
+        logLabel.Text = log
+        logLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+        logLabel.TextSize = 12
+        logLabel.TextXAlignment = Enum.TextXAlignment.Left
+        logLabel.BackgroundTransparency = 1
+        logLabel.Parent = logList
+    end
+    
+    logList.CanvasSize = UDim2.new(0, 0, 0, #logs * 22)
+end
+
+-- Toggle log panel
+rightSectionButton.MouseButton1Click:Connect(function()
+    logPanel.Visible = not logPanel.Visible
+end)
+
+-- Teleport function
+local function teleportTo(targetPlayer)
+    local character = player.Character
+    local targetChar = targetPlayer.Character
+    if character and targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            rootPart.CFrame = targetChar.HumanoidRootPart.CFrame
+            addLog("Teleported to " .. targetPlayer.DisplayName .. " [" .. getPlayerRank(targetPlayer) .. "]")
+        end
+    end
+end
+
+-- Find player function
+local function findPlayer(searchName)
+    local searchLower = searchName:lower()
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        if plr.Name:lower():sub(1, #searchLower) == searchLower then
+            return plr
+        end
+        if plr.DisplayName and plr.DisplayName:lower():sub(1, #searchLower) == searchLower then
+            return plr
+        end
+    end
+    return nil
+end
+
+-- Update prefix display when changed
+local function updatePrefixDisplay()
+    prefixLabel.Text = "Prefix: " .. prefix
+end
+
+-- Command handler
+player.Chatted:Connect(function(msg)
+    if msg:sub(1, 1) == prefix then
+        local args = {}
+        for arg in msg:sub(2):gmatch("%S+") do
+            table.insert(args, arg)
+        end
+        
+        local command = args[1] and args[1]:lower()
+        local targetName = args[2]
+        
+        if command == "tp" or command == "goto" or command == "to" then
+            if targetName then
+                local target = findPlayer(targetName)
+                if target then
+                    teleportTo(target)
+                    commandCount = commandCount + 1
+                    counterLabel.Text = tostring(commandCount)
+                    addLog(player.DisplayName .. " [" .. getPlayerRank(player) .. "] used /" .. command .. " " .. targetName)
+                else
+                    addLog("Player not found: " .. targetName)
+                end
+            end
+        elseif command == "prefix" then
+            local newPrefix = args[2]
+            if newPrefix and #newPrefix == 1 then
+                prefix = newPrefix
+                updatePrefixDisplay()
+                addLog("Prefix changed to: " .. prefix)
+            else
+                addLog("Usage: prefix <single character>")
+            end
+        end
+    end
+end)
+
+-- Show all players and their ranks when script loads
+local function showAllRanks()
+    local rankList = ""
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        rankList = rankList .. plr.Name .. " [" .. getPlayerRank(plr) .. "]\n"
+    end
+    print("=== Players in Server ===\n" .. rankList)
+    addLog("Ranks loaded! Total players: " .. #game.Players:GetPlayers())
+end
+
+-- Update border color based on rank
+updateBorderColor()
+
+-- Initial setup
+addLog("=== ADMIN TITLEBAR LOADED ===")
+addLog("Your rank: " .. getPlayerRank(player))
+addLog("Commands: tp, goto, to, prefix")
+addLog("Click the command counter (right side) for logs!")
+showAllRanks()
+
+print("=== Admin Commands + Titlebar Loaded ===")
+print("Current prefix: " .. prefix)
+print("Your rank: " .. getPlayerRank(player))
