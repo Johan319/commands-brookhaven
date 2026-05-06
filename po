@@ -1,6 +1,6 @@
 -- Admin Commands for Brookhaven with Titlebar Rank Display
 -- Default prefix: ;
--- Commands: tp <player>, goto <player>, to <player>, view <player>, spectate <player>, prefix <new prefix>, cmds, commands, rejoin, reset
+-- Commands: tp <player>, goto <player>, to <player>, view <player>, spectate <player>, prefix <new prefix>, cmds, commands, uncmds, uncommands, rejoin, reset
 
 local prefix = ";"
 local player = game.Players.LocalPlayer
@@ -136,34 +136,23 @@ separator.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
 separator.BorderSizePixel = 0
 separator.Parent = titlebar
 
--- Middle section: Command info
+-- Middle section: Only prefix info (removed long command list)
 local middleSection = Instance.new("Frame")
-middleSection.Size = UDim2.new(0, 380, 1, 0)
+middleSection.Size = UDim2.new(0, 150, 1, 0)
 middleSection.Position = UDim2.new(0, 220, 0, 0)
 middleSection.BackgroundTransparency = 1
 middleSection.Parent = titlebar
 
 local prefixLabel = Instance.new("TextLabel")
-prefixLabel.Size = UDim2.new(0, 60, 1, 0)
+prefixLabel.Size = UDim2.new(1, 0, 1, 0)
 prefixLabel.Position = UDim2.new(0, 0, 0, 0)
 prefixLabel.BackgroundTransparency = 1
-prefixLabel.Text = "Prefix: " .. prefix
+prefixLabel.Text = "Prefix: " .. prefix .. " | Type " .. prefix .. "cmds"
 prefixLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
 prefixLabel.TextSize = 14
 prefixLabel.Font = Enum.Font.Gotham
 prefixLabel.TextXAlignment = Enum.TextXAlignment.Left
 prefixLabel.Parent = middleSection
-
-local commandLabel = Instance.new("TextLabel")
-commandLabel.Size = UDim2.new(1, -60, 1, 0)
-commandLabel.Position = UDim2.new(0, 65, 0, 0)
-commandLabel.BackgroundTransparency = 1
-commandLabel.Text = "Cmds: tp/goto/to <name> | view/spectate <name> | prefix <char> | rejoin | reset"
-commandLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-commandLabel.TextSize = 12
-commandLabel.Font = Enum.Font.Gotham
-commandLabel.TextXAlignment = Enum.TextXAlignment.Left
-commandLabel.Parent = middleSection
 
 -- Right section: Command counter and toggle
 local rightSection = Instance.new("Frame")
@@ -516,7 +505,7 @@ end
 
 -- Update prefix display
 local function updatePrefixDisplay()
-    prefixLabel.Text = "Prefix: " .. prefix
+    prefixLabel.Text = "Prefix: " .. prefix .. " | Type " .. prefix .. "cmds"
 end
 
 -- Show commands panel
@@ -532,7 +521,7 @@ local function showCommandsPanel()
         {cmd = "prefix <char>", desc = "Change command prefix", rank = "Moderator"},
         {cmd = "rejoin", desc = "Rejoin the game", rank = "Member"},
         {cmd = "reset", desc = "Reset your character", rank = "Member"},
-        {cmd = "cmds / commands", desc = "Show this command list", rank = "Member"},
+        {cmd = "cmds / commands / uncmds / uncommands", desc = "Show this command list", rank = "Member"},
     }
     
     for _, cmdInfo in ipairs(commands) do
@@ -558,7 +547,7 @@ local function showCommandsPanel()
         cmdText.Font = Enum.Font.GothamBold
         cmdText.TextXAlignment = Enum.TextXAlignment.Left
         cmdText.Parent = cmdFrame
-
+        
         -- Description text (middle column)
         local descText = Instance.new("TextLabel")
         descText.Size = UDim2.new(0.35, -5, 1, 0)
@@ -674,7 +663,7 @@ player.Chatted:Connect(function(msg)
             end
         
         -- Commands List (Member+ - anyone can see commands)
-        elseif command == "cmds" or command == "commands" then
+        elseif command == "cmds" or command == "commands" or command == "uncmds" or command == "uncommands" then
             showCommandsPanel()
             addLog(player.Name .. " [" .. getPlayerRank(player) .. "] viewed the commands list")
         end
@@ -686,7 +675,7 @@ updateBorderColor()
 -- Initial setup
 addLog("=== ADMIN TITLEBAR LOADED ===")
 addLog("Your rank: " .. getPlayerRank(player))
-addLog("Commands: tp, goto, to, view, spectate, prefix, rejoin, reset, cmds, commands")
+addLog("Commands: tp, goto, to, view, spectate, prefix, rejoin, reset, cmds, commands, uncmds, uncommands")
 addLog("Rank required for admin commands: Moderator+")
 addLog("Click 'logs' (right side) for command history!")
 addLog("Type " .. prefix .. "cmds to see all commands")
