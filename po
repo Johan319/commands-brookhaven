@@ -36,6 +36,36 @@ local currentSpectateTarget = nil
 local originalCameraSubject = nil
 local camera = workspace.CurrentCamera
 
+-- Function to make a GUI draggable
+local function makeDraggable(frame, dragHandle)
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+    
+    local handle = dragHandle or frame
+    
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    handle.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
 -- Function to get a player's rank from the table
 local function getPlayerRank(plr)
     local username = plr.Name
@@ -232,7 +262,7 @@ local stopCorner = Instance.new("UICorner")
 stopCorner.CornerRadius = UDim.new(0, 6)
 stopCorner.Parent = stopSpectateButton
 
--- Log panel
+-- Log panel (DRAGGABLE)
 local logPanel = Instance.new("Frame")
 logPanel.Size = UDim2.new(0, 400, 0, 300)
 logPanel.Position = UDim2.new(1, -410, 0, 40)
@@ -247,20 +277,48 @@ local logCorner = Instance.new("UICorner")
 logCorner.CornerRadius = UDim.new(0, 6)
 logCorner.Parent = logPanel
 
+-- Drag handle for log panel (the title bar)
+local logDragHandle = Instance.new("Frame")
+logDragHandle.Size = UDim2.new(1, 0, 0, 30)
+logDragHandle.Position = UDim2.new(0, 0, 0, 0)
+logDragHandle.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+logDragHandle.BackgroundTransparency = 0.2
+logDragHandle.BorderSizePixel = 0
+logDragHandle.Parent = logPanel
+
 local logTitle = Instance.new("TextLabel")
-logTitle.Size = UDim2.new(1, 0, 0, 30)
-logTitle.Position = UDim2.new(0, 0, 0, 0)
-logTitle.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-logTitle.BackgroundTransparency = 0.2
-logTitle.Text = "COMMAND LOG"
+logTitle.Size = UDim2.new(1, -60, 1, 0)
+logTitle.Position = UDim2.new(0, 10, 0, 0)
+logTitle.BackgroundTransparency = 1
+logTitle.Text = "COMMAND LOG (Drag to move)"
 logTitle.TextColor3 = Color3.fromRGB(0, 0, 0)
-logTitle.TextSize = 16
+logTitle.TextSize = 14
 logTitle.Font = Enum.Font.GothamBold
-logTitle.Parent = logPanel
+logTitle.TextXAlignment = Enum.TextXAlignment.Left
+logTitle.Parent = logDragHandle
+
+-- Close button for log panel
+local logCloseButton = Instance.new("TextButton")
+logCloseButton.Size = UDim2.new(0, 50, 1, 0)
+logCloseButton.Position = UDim2.new(1, -55, 0, 0)
+logCloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+logCloseButton.Text = "X"
+logCloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+logCloseButton.TextSize = 14
+logCloseButton.Font = Enum.Font.GothamBold
+logCloseButton.Parent = logDragHandle
+
+local logCloseCorner = Instance.new("UICorner")
+logCloseCorner.CornerRadius = UDim.new(0, 4)
+logCloseCorner.Parent = logCloseButton
+
+logCloseButton.MouseButton1Click:Connect(function()
+    logPanel.Visible = false
+end)
 
 local logList = Instance.new("ScrollingFrame")
-logList.Size = UDim2.new(1, 0, 1, -30)
-logList.Position = UDim2.new(0, 0, 0, 30)
+logList.Size = UDim2.new(1, -20, 1, -40)
+logList.Position = UDim2.new(0, 10, 0, 35)
 logList.BackgroundTransparency = 1
 logList.CanvasSize = UDim2.new(0, 0, 0, 0)
 logList.Parent = logPanel
@@ -269,7 +327,7 @@ local logLayout = Instance.new("UIListLayout")
 logLayout.Padding = UDim.new(0, 2)
 logLayout.Parent = logList
 
--- Command list panel (for ;cmds and ;commands)
+-- Command list panel (DRAGGABLE)
 local commandPanel = Instance.new("Frame")
 commandPanel.Size = UDim2.new(0, 450, 0, 450)
 commandPanel.Position = UDim2.new(0.5, -225, 0.5, -225)
@@ -284,18 +342,46 @@ local commandPanelCorner = Instance.new("UICorner")
 commandPanelCorner.CornerRadius = UDim.new(0, 10)
 commandPanelCorner.Parent = commandPanel
 
-local commandPanelTitle = Instance.new("TextLabel")
-commandPanelTitle.Size = UDim2.new(1, 0, 0, 40)
-commandPanelTitle.Position = UDim2.new(0, 0, 0, 0)
-commandPanelTitle.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-commandPanelTitle.BackgroundTransparency = 0.3
-commandPanelTitle.Text = "AVAILABLE COMMANDS"
-commandPanelTitle.TextColor3 = Color3.fromRGB(0, 0, 0)
-commandPanelTitle.TextSize = 18
-commandPanelTitle.Font = Enum.Font.GothamBold
-commandPanelTitle.Parent = commandPanel
+-- Drag handle for command panel
+local cmdDragHandle = Instance.new("Frame")
+cmdDragHandle.Size = UDim2.new(1, 0, 0, 40)
+cmdDragHandle.Position = UDim2.new(0, 0, 0, 0)
+cmdDragHandle.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+cmdDragHandle.BackgroundTransparency = 0.3
+cmdDragHandle.BorderSizePixel = 0
+cmdDragHandle.Parent = commandPanel
 
--- Header row
+local commandPanelTitle = Instance.new("TextLabel")
+commandPanelTitle.Size = UDim2.new(1, -60, 1, 0)
+commandPanelTitle.Position = UDim2.new(0, 10, 0, 0)
+commandPanelTitle.BackgroundTransparency = 1
+commandPanelTitle.Text = "AVAILABLE COMMANDS (Drag to move)"
+commandPanelTitle.TextColor3 = Color3.fromRGB(0, 0, 0)
+commandPanelTitle.TextSize = 16
+commandPanelTitle.Font = Enum.Font.GothamBold
+commandPanelTitle.TextXAlignment = Enum.TextXAlignment.Left
+commandPanelTitle.Parent = cmdDragHandle
+
+-- Close button for command panel
+local cmdCloseButton = Instance.new("TextButton")
+cmdCloseButton.Size = UDim2.new(0, 50, 1, 0)
+cmdCloseButton.Position = UDim2.new(1, -55, 0, 0)
+cmdCloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+cmdCloseButton.Text = "X"
+cmdCloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+cmdCloseButton.TextSize = 14
+cmdCloseButton.Font = Enum.Font.GothamBold
+cmdCloseButton.Parent = cmdDragHandle
+
+local cmdCloseCorner = Instance.new("UICorner")
+cmdCloseCorner.CornerRadius = UDim.new(0, 5)
+cmdCloseCorner.Parent = cmdCloseButton
+
+cmdCloseButton.MouseButton1Click:Connect(function()
+    commandPanel.Visible = false
+end)
+
+-- Header row for command list
 local headerFrame = Instance.new("Frame")
 headerFrame.Size = UDim2.new(1, -20, 0, 30)
 headerFrame.Position = UDim2.new(0, 10, 0, 45)
@@ -352,23 +438,9 @@ local commandListLayout = Instance.new("UIListLayout")
 commandListLayout.Padding = UDim.new(0, 4)
 commandListLayout.Parent = commandList
 
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 80, 0, 30)
-closeButton.Position = UDim2.new(0.5, -40, 1, -40)
-closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-closeButton.Text = "CLOSE"
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.TextSize = 14
-closeButton.Font = Enum.Font.GothamBold
-closeButton.Parent = commandPanel
-
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 5)
-closeCorner.Parent = closeButton
-
-closeButton.MouseButton1Click:Connect(function()
-    commandPanel.Visible = false
-end)
+-- Make panels draggable
+makeDraggable(logPanel, logDragHandle)
+makeDraggable(commandPanel, cmdDragHandle)
 
 -- Spectate functions
 local function stopSpectating()
@@ -690,6 +762,7 @@ addLog("Commands: tp, goto, to, view, spectate, prefix, rejoin, reset, cmds, com
 addLog("Rank required for admin commands: Moderator+")
 addLog("Click 'logs' (right side) for command history!")
 addLog("Type " .. prefix .. "cmds to see all commands")
+addLog("You can drag the log and commands panels by their title bars!")
 
 print("=== Admin Commands + Titlebar Loaded ===")
 print("Current prefix: " .. prefix)
