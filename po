@@ -1,6 +1,6 @@
 -- Admin Commands for Brookhaven with Titlebar Rank Display
 -- Default prefix: ;
--- Commands: tp <player>, goto <player>, to <player>, view <player>, spectate <player>, prefix <new prefix>, cmds, commands, uncmds, uncommands, rejoin, reset
+-- Commands: tp <player>, goto <player>, to <player>, view <player>, spectate <player>, prefix <new prefix>, cmds, commands, rejoin, reset
 
 local prefix = ";"
 local player = game.Players.LocalPlayer
@@ -521,7 +521,7 @@ local function showCommandsPanel()
         {cmd = "prefix <char>", desc = "Change command prefix", rank = "Moderator"},
         {cmd = "rejoin", desc = "Rejoin the game", rank = "Member"},
         {cmd = "reset", desc = "Reset your character", rank = "Member"},
-        {cmd = "cmds / commands / uncmds / uncommands", desc = "Show this command list", rank = "Member"},
+        {cmd = "cmds / commands", desc = "Show this command list", rank = "Member"},
     }
     
     for _, cmdInfo in ipairs(commands) do
@@ -663,7 +663,7 @@ player.Chatted:Connect(function(msg)
             end
         
         -- Commands List (Member+ - anyone can see commands)
-        elseif command == "cmds" or command == "commands" or command == "uncmds" or command == "uncommands" then
+        elseif command == "cmds" or command == "commands" then
             showCommandsPanel()
             addLog(player.Name .. " [" .. getPlayerRank(player) .. "] viewed the commands list")
         end
@@ -675,7 +675,7 @@ updateBorderColor()
 -- Initial setup
 addLog("=== ADMIN TITLEBAR LOADED ===")
 addLog("Your rank: " .. getPlayerRank(player))
-addLog("Commands: tp, goto, to, view, spectate, prefix, rejoin, reset, cmds, commands, uncmds, uncommands")
+addLog("Commands: tp, goto, to, view, spectate, prefix, rejoin, reset, cmds, commands")
 addLog("Rank required for admin commands: Moderator+")
 addLog("Click 'logs' (right side) for command history!")
 addLog("Type " .. prefix .. "cmds to see all commands")
