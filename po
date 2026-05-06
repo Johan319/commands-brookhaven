@@ -36,34 +36,6 @@ local currentSpectateTarget = nil
 local originalCameraSubject = nil
 local camera = workspace.CurrentCamera
 
--- Function to make a GUI draggable
-local function makeDraggable(frame)
-    local dragging = false
-    local dragStart = nil
-    local startPos = nil
-    
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    
-    frame.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
-
 -- Function to get a player's rank from the table
 local function getPlayerRank(plr)
     local username = plr.Name
@@ -260,7 +232,7 @@ local stopCorner = Instance.new("UICorner")
 stopCorner.CornerRadius = UDim.new(0, 6)
 stopCorner.Parent = stopSpectateButton
 
--- Log panel (DRAGGABLE)
+-- Log panel
 local logPanel = Instance.new("Frame")
 logPanel.Size = UDim2.new(0, 400, 0, 300)
 logPanel.Position = UDim2.new(1, -410, 0, 40)
@@ -275,23 +247,20 @@ local logCorner = Instance.new("UICorner")
 logCorner.CornerRadius = UDim.new(0, 6)
 logCorner.Parent = logPanel
 
--- Make log panel draggable
-makeDraggable(logPanel)
-
 local logTitle = Instance.new("TextLabel")
 logTitle.Size = UDim2.new(1, 0, 0, 30)
 logTitle.Position = UDim2.new(0, 0, 0, 0)
 logTitle.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
 logTitle.BackgroundTransparency = 0.2
-logTitle.Text = "COMMAND LOG (Drag me!)"
+logTitle.Text = "COMMAND LOG"
 logTitle.TextColor3 = Color3.fromRGB(0, 0, 0)
-logTitle.TextSize = 14
+logTitle.TextSize = 16
 logTitle.Font = Enum.Font.GothamBold
 logTitle.Parent = logPanel
 
 local logList = Instance.new("ScrollingFrame")
-logList.Size = UDim2.new(1, -20, 1, -40)
-logList.Position = UDim2.new(0, 10, 0, 35)
+logList.Size = UDim2.new(1, 0, 1, -30)
+logList.Position = UDim2.new(0, 0, 0, 30)
 logList.BackgroundTransparency = 1
 logList.CanvasSize = UDim2.new(0, 0, 0, 0)
 logList.Parent = logPanel
@@ -300,7 +269,7 @@ local logLayout = Instance.new("UIListLayout")
 logLayout.Padding = UDim.new(0, 2)
 logLayout.Parent = logList
 
--- Command list panel (DRAGGABLE)
+-- Command list panel (for ;cmds and ;commands)
 local commandPanel = Instance.new("Frame")
 commandPanel.Size = UDim2.new(0, 450, 0, 450)
 commandPanel.Position = UDim2.new(0.5, -225, 0.5, -225)
@@ -315,17 +284,14 @@ local commandPanelCorner = Instance.new("UICorner")
 commandPanelCorner.CornerRadius = UDim.new(0, 10)
 commandPanelCorner.Parent = commandPanel
 
--- Make command panel draggable
-makeDraggable(commandPanel)
-
 local commandPanelTitle = Instance.new("TextLabel")
 commandPanelTitle.Size = UDim2.new(1, 0, 0, 40)
 commandPanelTitle.Position = UDim2.new(0, 0, 0, 0)
 commandPanelTitle.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
 commandPanelTitle.BackgroundTransparency = 0.3
-commandPanelTitle.Text = "AVAILABLE COMMANDS (Drag me!)"
+commandPanelTitle.Text = "AVAILABLE COMMANDS"
 commandPanelTitle.TextColor3 = Color3.fromRGB(0, 0, 0)
-commandPanelTitle.TextSize = 16
+commandPanelTitle.TextSize = 18
 commandPanelTitle.Font = Enum.Font.GothamBold
 commandPanelTitle.Parent = commandPanel
 
@@ -386,7 +352,6 @@ local commandListLayout = Instance.new("UIListLayout")
 commandListLayout.Padding = UDim.new(0, 4)
 commandListLayout.Parent = commandList
 
--- Close button for command panel
 local closeButton = Instance.new("TextButton")
 closeButton.Size = UDim2.new(0, 80, 0, 30)
 closeButton.Position = UDim2.new(0.5, -40, 1, -40)
@@ -593,7 +558,7 @@ local function showCommandsPanel()
         cmdText.Font = Enum.Font.GothamBold
         cmdText.TextXAlignment = Enum.TextXAlignment.Left
         cmdText.Parent = cmdFrame
-        
+
         -- Description text (middle column)
         local descText = Instance.new("TextLabel")
         descText.Size = UDim2.new(0.35, -5, 1, 0)
@@ -725,7 +690,6 @@ addLog("Commands: tp, goto, to, view, spectate, prefix, rejoin, reset, cmds, com
 addLog("Rank required for admin commands: Moderator+")
 addLog("Click 'logs' (right side) for command history!")
 addLog("Type " .. prefix .. "cmds to see all commands")
-addLog("DRAG TIP: You can drag both panels by clicking and holding anywhere on them!")
 
 print("=== Admin Commands + Titlebar Loaded ===")
 print("Current prefix: " .. prefix)
