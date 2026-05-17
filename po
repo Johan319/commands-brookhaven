@@ -284,7 +284,7 @@ Overlay.BackgroundTransparency = 0.45
 Overlay.BorderSizePixel = 0
 Overlay.Visible = false
 Overlay.ZIndex = 10
-Overlay.Parent = Main
+Overlay.Parent = ClipFrame
 
 local Modal = Instance.new("Frame")
 Modal.Size = UDim2.new(0, 290, 0, 238)
