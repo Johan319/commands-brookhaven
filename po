@@ -688,4 +688,18 @@ TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingD
     Size = UDim2.new(0, 480, 0, FULL_H)
 }):Play()
 
+-- =====================
+--   CHAT COMMAND: ;scriptblox
+-- =====================
+Players.LocalPlayer.Chatted:Connect(function(msg)
+    if msg:lower() == ";scriptblox" then
+        if Gui and Gui.Parent then
+            Main.Visible = not Main.Visible
+            Shadow.Visible = Main.Visible
+        else
+            -- Re-run the script if gui was closed
+        end
+    end
+end)
+
 print("GhostHub loaded!")
