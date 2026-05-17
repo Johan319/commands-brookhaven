@@ -50,6 +50,7 @@ Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
 Shadow.ImageTransparency = 0.55
 Shadow.ScaleType = Enum.ScaleType.Slice
 Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
+Shadow.Visible = false  -- hidden until ;scriptblox
 Shadow.Parent = Gui
 
 -- =====================
@@ -58,11 +59,12 @@ Shadow.Parent = Gui
 -- =====================
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.new(0, 480, 0, 0)
+Main.Size = UDim2.new(0, 480, 0, 370)
 Main.Position = UDim2.new(0.5, -240, 0.5, -185)
 Main.BackgroundColor3 = C.Bg
 Main.BorderSizePixel = 0
 Main.ClipsDescendants = false  -- IMPORTANT: must be false for drag to work
+Main.Visible = false  -- hidden until ;scriptblox
 Main.Parent = Gui
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
 
@@ -156,7 +158,7 @@ local SearchIcon = Instance.new("TextLabel")
 SearchIcon.Size = UDim2.new(0, 28, 1, 0)
 SearchIcon.Position = UDim2.new(0, 6, 0, 0)
 SearchIcon.BackgroundTransparency = 1
-SearchIcon.Text = "[ 🔍 ]"
+SearchIcon.Text = "[ S ]"
 SearchIcon.TextColor3 = C.Sub
 SearchIcon.TextSize = 9
 SearchIcon.Font = Enum.Font.GothamBold
@@ -552,7 +554,7 @@ local function MakeCard(data, idx)
 
     local meta = tostring(data.views or 0) .. " Views"
     if data.isPatched then meta = meta .. "  [Patched]" end
-    if data.key then meta = meta .. "  🔑 Key" end
+    if data.key then meta = meta .. "  [Key]" end
     viewsLbl.Text = meta
     viewsLbl.TextColor3 = C.Sub
     viewsLbl.TextSize = 9
@@ -589,14 +591,14 @@ local function DoSearch(q)
 
     local ok, res = pcall(game.HttpGet, game, string.format(C.API, HttpService:UrlEncode(q)))
     if not ok then
-        Status.Text = "⚠ HTTP request failed. Enable HTTP requests."
+        Status.Text = "HTTP request failed. Enable HTTP requests."
         Status.TextColor3 = C.Red
         return
     end
 
     local ok2, data = pcall(HttpService.JSONDecode, HttpService, res)
     if not ok2 or not data or not data.result then
-        Status.Text = "⚠ Could not parse response."
+        Status.Text = "Could not parse response."
         Status.TextColor3 = C.Red
         return
     end
@@ -658,12 +660,34 @@ UserInputService.InputChanged:Connect(function(inp)
 end)
 
 -- =====================
---   MINIMIZE / CLOSE
+--   SHOW / HIDE
 -- =====================
 local minimized = false
+local guiVisible = false
 local FULL_H = 370
 local MINI_H = 42
 
+local function ShowGUI()
+    Main.Size = UDim2.new(0, 480, 0, 0)
+    Main.Visible = true
+    Shadow.Visible = true
+    TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 480, 0, FULL_H)
+    }):Play()
+end
+
+local function HideGUI()
+    TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
+        Size = UDim2.new(0, 480, 0, 0)
+    }):Play()
+    task.wait(0.22)
+    Main.Visible = false
+    Shadow.Visible = false
+end
+
+-- =====================
+--   MINIMIZE / CLOSE
+-- =====================
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     local targetH = minimized and MINI_H or FULL_H
@@ -676,28 +700,41 @@ MinBtn.MouseButton1Click:Connect(function()
 end)
 
 CloseBtn.MouseButton1Click:Connect(function()
-    TweenService:Create(Main, TweenInfo.new(0.2), {Size = UDim2.new(0, 480, 0, 0)}):Play()
-    task.wait(0.22)
-    Gui:Destroy()
+    guiVisible = false
+    HideGUI()
 end)
 
 -- =====================
---   OPEN ANIMATION
+--   OPEN ANIMATION (plays when toggled visible via ;scriptblox)
 -- =====================
-TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-    Size = UDim2.new(0, 480, 0, FULL_H)
-}):Play()
+local function ShowGUI()
+    Main.Size = UDim2.new(0, 480, 0, 0)
+    Main.Visible = true
+    Shadow.Visible = true
+    TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 480, 0, FULL_H)
+    }):Play()
+end
+
+local function HideGUI()
+    TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
+        Size = UDim2.new(0, 480, 0, 0)
+    }):Play()
+    task.wait(0.22)
+    Main.Visible = false
+    Shadow.Visible = false
+end
 
 -- =====================
 --   CHAT COMMAND: ;scriptblox
 -- =====================
 Players.LocalPlayer.Chatted:Connect(function(msg)
     if msg:lower() == ";scriptblox" then
-        if Gui and Gui.Parent then
-            Main.Visible = not Main.Visible
-            Shadow.Visible = Main.Visible
+        guiVisible = not guiVisible
+        if guiVisible then
+            ShowGUI()
         else
-            -- Re-run the script if gui was closed
+            HideGUI()
         end
     end
 end)
