@@ -667,6 +667,8 @@ local MINI_H = 42
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     local targetH = minimized and MINI_H or FULL_H
+    ClipFrame.Visible = not minimized
+    SBox.TextEditable = not minimized
     TweenService:Create(Main, TweenInfo.new(0.25, Enum.EasingStyle.Quart), {
         Size = UDim2.new(0, 480, 0, targetH)
     }):Play()
