@@ -1,830 +1,689 @@
--- Admin Commands for Brookhaven with Titlebar Rank Display
--- Default prefix: ;
--- Commands: tp <player>, goto <player>, to <player>, view <player>, spectate <player>, prefix <new prefix>, cmds, commands, rejoin, reset, antivoid, infjump, antisit
+-- GhostHub Script Hub
+-- No emojis (Roblox font incompatible), fixed dragging, ScriptBlox chat bar
 
-local prefix = ";"
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
 
--- ============================================
--- MANUAL GROUP RANKS (Edit these!)
--- Add players and their ranks from your group
--- Rank hierarchy: Owner > Co-Owner > Head Admin > Admin > Moderator > VIP > Member
--- ============================================
-local groupRanks = {
-    ["Johan"] = "Owner",
-    ["sigmaboy2341814"] = "Co-Owner",
-    ["PlayerName2"] = "Head Admin",
-    ["PlayerName3"] = "Admin",
-    ["PlayerName4"] = "Moderator",
-    ["PlayerName5"] = "VIP",
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+if PlayerGui:FindFirstChild("GhostHub") then
+    PlayerGui:FindFirstChild("GhostHub"):Destroy()
+end
+
+local C = {
+    Bg      = Color3.fromRGB(28, 31, 38),
+    Surface = Color3.fromRGB(34, 38, 48),
+    Card    = Color3.fromRGB(38, 42, 54),
+    Accent  = Color3.fromRGB(80, 140, 230),
+    Text    = Color3.fromRGB(230, 230, 240),
+    Sub     = Color3.fromRGB(120, 125, 145),
+    Green   = Color3.fromRGB(70, 200, 120),
+    Red     = Color3.fromRGB(210, 70, 70),
+    API     = "https://scriptblox.com/api/script/search?q=%s&page=1&max=20",
+    ThumbAPI = "https://thumbnails.roblox.com/v1/games/icons?universeIds=%s&size=150x150&format=Png&isCircular=false",
 }
 
--- Rank permission levels (higher number = more permissions)
-local rankLevels = {
-    ["Owner"] = 100,
-    ["Co-Owner"] = 90,
-    ["Head Admin"] = 80,
-    ["Admin"] = 70,
-    ["Moderator"] = 60,
-    ["VIP"] = 50,
-    ["Member"] = 10,
-}
+-- =====================
+--   SCREEN GUI
+-- =====================
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "ScriptBlox Made by Johan"
+Gui.ResetOnSpawn = false
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.Parent = PlayerGui
 
--- Spectate variables
-local isSpectating = false
-local currentSpectateTarget = nil
-local originalCameraSubject = nil
-local camera = workspace.CurrentCamera
+-- =====================
+--   SHADOW (behind main)
+-- =====================
+local Shadow = Instance.new("ImageLabel")
+Shadow.Name = "Shadow"
+Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+Shadow.BackgroundTransparency = 1
+Shadow.Position = UDim2.new(0.5, 0, 0.5, 6)
+Shadow.Size = UDim2.new(0, 520, 0, 400)
+Shadow.ZIndex = 0
+Shadow.Image = "rbxassetid://6014261993"
+Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+Shadow.ImageTransparency = 0.55
+Shadow.ScaleType = Enum.ScaleType.Slice
+Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
+Shadow.Parent = Gui
 
--- AntiSit variables
-local antiSitEnabled = false
-local antiSitConnection = nil
+-- =====================
+--   MAIN FRAME
+-- NOTE: ClipsDescendants OFF so input reaches TBar correctly
+-- =====================
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 480, 0, 0)
+Main.Position = UDim2.new(0.5, -240, 0.5, -185)
+Main.BackgroundColor3 = C.Bg
+Main.BorderSizePixel = 0
+Main.ClipsDescendants = false  -- IMPORTANT: must be false for drag to work
+Main.Parent = Gui
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
 
--- Function to get a player's rank from the table
-local function getPlayerRank(plr)
-    local username = plr.Name
-    local displayName = plr.DisplayName
-    
-    if groupRanks[username] then
-        return groupRanks[username]
-    end
-    for name, rank in pairs(groupRanks) do
-        if displayName:lower() == name:lower() then
-            return rank
-        end
-    end
-    return "Member"
+-- Clip frame inside for content overflow
+local ClipFrame = Instance.new("Frame")
+ClipFrame.Size = UDim2.new(1, 0, 1, 0)
+ClipFrame.BackgroundTransparency = 1
+ClipFrame.ClipsDescendants = true
+ClipFrame.ZIndex = 1
+ClipFrame.Parent = Main
+
+-- Accent bar
+local AccentBar = Instance.new("Frame")
+AccentBar.Size = UDim2.new(1, 0, 0, 2)
+AccentBar.BackgroundColor3 = C.Accent
+AccentBar.BorderSizePixel = 0
+AccentBar.ZIndex = 5
+AccentBar.Parent = ClipFrame
+local AG = Instance.new("UIGradient", AccentBar)
+AG.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 100, 220)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 180, 255)),
+})
+
+-- =====================
+--   TITLE BAR (direct child of Main so drag input works)
+-- =====================
+local TBar = Instance.new("Frame")
+TBar.Size = UDim2.new(1, 0, 0, 40)
+TBar.Position = UDim2.new(0, 0, 0, 2)
+TBar.BackgroundColor3 = C.Surface
+TBar.BorderSizePixel = 0
+TBar.ZIndex = 6
+TBar.Parent = Main  -- direct child of Main, NOT ClipFrame
+
+local TTitle = Instance.new("TextLabel")
+TTitle.Size = UDim2.new(0, 160, 1, 0)
+TTitle.Position = UDim2.new(0, 14, 0, 0)
+TTitle.BackgroundTransparency = 1
+TTitle.Text = "ScriptBlox Made by Johan"
+TTitle.TextColor3 = C.Text
+TTitle.TextSize = 15
+TTitle.Font = Enum.Font.GothamBold
+TTitle.TextXAlignment = Enum.TextXAlignment.Left
+TTitle.ZIndex = 7
+TTitle.Parent = TBar
+
+local function MakeWinBtn(xOff, bg, txt, txtColor)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0, 28, 0, 28)
+    b.Position = UDim2.new(1, xOff, 0.5, -14)
+    b.BackgroundColor3 = bg
+    b.Text = txt
+    b.TextColor3 = txtColor or C.Text
+    b.TextSize = 13
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.ZIndex = 8
+    b.Parent = TBar
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 7)
+    return b
 end
 
--- Function to check if a player has permission (requiredLevel or higher)
-local function hasPermission(plr, requiredRank)
-    local playerRank = getPlayerRank(plr)
-    local playerLevel = rankLevels[playerRank] or 0
-    local requiredLevel = rankLevels[requiredRank] or 0
-    return playerLevel >= requiredLevel
+local MinBtn   = MakeWinBtn(-66, Color3.fromRGB(45, 48, 60), "-")
+local CloseBtn = MakeWinBtn(-32, Color3.fromRGB(190, 50, 50), "X", Color3.new(1,1,1))
+
+-- =====================
+--   BODY (inside ClipFrame)
+-- =====================
+local Body = Instance.new("Frame")
+Body.Size = UDim2.new(1, 0, 1, -80)  -- leave room for chat bar at bottom
+Body.Position = UDim2.new(0, 0, 0, 42)
+Body.BackgroundTransparency = 1
+Body.ZIndex = 2
+Body.Parent = ClipFrame
+
+-- Search bar
+local SF = Instance.new("Frame")
+SF.Size = UDim2.new(1, -20, 0, 32)
+SF.Position = UDim2.new(0, 10, 0, 8)
+SF.BackgroundColor3 = C.Surface
+SF.BorderSizePixel = 0
+SF.ZIndex = 3
+SF.Parent = Body
+Instance.new("UICorner", SF).CornerRadius = UDim.new(0, 8)
+local SS = Instance.new("UIStroke", SF)
+SS.Color = Color3.fromRGB(50, 55, 70)
+SS.Thickness = 1
+
+local SearchIcon = Instance.new("TextLabel")
+SearchIcon.Size = UDim2.new(0, 28, 1, 0)
+SearchIcon.Position = UDim2.new(0, 6, 0, 0)
+SearchIcon.BackgroundTransparency = 1
+SearchIcon.Text = "[ 🔍Search ]"
+SearchIcon.TextColor3 = C.Sub
+SearchIcon.TextSize = 9
+SearchIcon.Font = Enum.Font.GothamBold
+SearchIcon.ZIndex = 4
+SearchIcon.Parent = SF
+
+local SBox = Instance.new("TextBox")
+SBox.Size = UDim2.new(1, -68, 1, 0)
+SBox.Position = UDim2.new(0, 32, 0, 0)
+SBox.BackgroundTransparency = 1
+SBox.PlaceholderText = "Search scripts..."
+SBox.PlaceholderColor3 = C.Sub
+SBox.Text = ""
+SBox.TextColor3 = C.Text
+SBox.TextSize = 12
+SBox.Font = Enum.Font.Gotham
+SBox.TextXAlignment = Enum.TextXAlignment.Left
+SBox.ClearTextOnFocus = false
+SBox.ZIndex = 4
+SBox.Parent = SF
+
+local GoBtn = Instance.new("TextButton")
+GoBtn.Size = UDim2.new(0, 30, 0, 24)
+GoBtn.Position = UDim2.new(1, -34, 0.5, -12)
+GoBtn.BackgroundColor3 = C.Accent
+GoBtn.Text = "Go"
+GoBtn.TextColor3 = Color3.new(1,1,1)
+GoBtn.TextSize = 11
+GoBtn.Font = Enum.Font.GothamBold
+GoBtn.BorderSizePixel = 0
+GoBtn.ZIndex = 5
+GoBtn.Parent = SF
+Instance.new("UICorner", GoBtn).CornerRadius = UDim.new(0, 6)
+
+-- Status label
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1, -20, 0, 16)
+Status.Position = UDim2.new(0, 10, 0, 46)
+Status.BackgroundTransparency = 1
+Status.Text = "Search for scripts above."
+Status.TextColor3 = C.Sub
+Status.TextSize = 10
+Status.Font = Enum.Font.Gotham
+Status.TextXAlignment = Enum.TextXAlignment.Left
+Status.ZIndex = 3
+Status.Parent = Body
+
+-- Scroll frame
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -20, 1, -70)
+Scroll.Position = UDim2.new(0, 10, 0, 66)
+Scroll.BackgroundTransparency = 1
+Scroll.BorderSizePixel = 0
+Scroll.ScrollBarThickness = 3
+Scroll.ScrollBarImageColor3 = C.Accent
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Scroll.ZIndex = 3
+Scroll.Parent = Body
+
+local LL = Instance.new("UIListLayout")
+LL.SortOrder = Enum.SortOrder.LayoutOrder
+LL.Padding = UDim.new(0, 6)
+LL.Parent = Scroll
+
+-- =====================
+--   SCRIPTBLOX CHAT BAR (bottom of window)
+-- =====================
+local ChatBar = Instance.new("Frame")
+ChatBar.Size = UDim2.new(1, 0, 0, 36)
+ChatBar.Position = UDim2.new(0, 0, 1, -36)
+ChatBar.BackgroundColor3 = C.Surface
+ChatBar.BorderSizePixel = 0
+ChatBar.ZIndex = 4
+ChatBar.Parent = ClipFrame
+
+local ChatBarLine = Instance.new("Frame")
+ChatBarLine.Size = UDim2.new(1, 0, 0, 1)
+ChatBarLine.Position = UDim2.new(0, 0, 0, 0)
+ChatBarLine.BackgroundColor3 = Color3.fromRGB(48, 52, 68)
+ChatBarLine.BorderSizePixel = 0
+ChatBarLine.ZIndex = 5
+ChatBarLine.Parent = ChatBar
+
+local ChatIcon = Instance.new("Frame")
+ChatIcon.Size = UDim2.new(0, 6, 0, 6)
+ChatIcon.Position = UDim2.new(0, 14, 0.5, -3)
+ChatIcon.BackgroundColor3 = C.Accent
+ChatIcon.BorderSizePixel = 0
+ChatIcon.ZIndex = 5
+ChatIcon.Parent = ChatBar
+Instance.new("UICorner", ChatIcon).CornerRadius = UDim.new(1, 0)
+
+local ChatLabel = Instance.new("TextLabel")
+ChatLabel.Size = UDim2.new(1, -80, 1, 0)
+ChatLabel.Position = UDim2.new(0, 28, 0, 0)
+ChatLabel.BackgroundTransparency = 1
+ChatLabel.Text = "scriptblox"
+ChatLabel.TextColor3 = C.Accent
+ChatLabel.TextSize = 11
+ChatLabel.Font = Enum.Font.GothamBold
+ChatLabel.TextXAlignment = Enum.TextXAlignment.Left
+ChatLabel.ZIndex = 5
+ChatLabel.Parent = ChatBar
+
+local PoweredLabel = Instance.new("TextLabel")
+PoweredLabel.Size = UDim2.new(0, 120, 1, 0)
+PoweredLabel.Position = UDim2.new(1, -124, 0, 0)
+PoweredLabel.BackgroundTransparency = 1
+PoweredLabel.Text = "Powered by ScriptBlox"
+PoweredLabel.TextColor3 = C.Sub
+PoweredLabel.TextSize = 9
+PoweredLabel.Font = Enum.Font.Gotham
+PoweredLabel.TextXAlignment = Enum.TextXAlignment.Right
+PoweredLabel.ZIndex = 5
+PoweredLabel.Parent = ChatBar
+
+-- =====================
+--   MODAL OVERLAY
+-- =====================
+local Overlay = Instance.new("Frame")
+Overlay.Size = UDim2.new(1, 0, 1, 0)
+Overlay.BackgroundColor3 = Color3.new(0, 0, 0)
+Overlay.BackgroundTransparency = 0.45
+Overlay.BorderSizePixel = 0
+Overlay.Visible = false
+Overlay.ZIndex = 10
+Overlay.Parent = Main
+
+local Modal = Instance.new("Frame")
+Modal.Size = UDim2.new(0, 290, 0, 238)
+Modal.AnchorPoint = Vector2.new(0.5, 0.5)
+Modal.Position = UDim2.new(0.5, 0, 0.5, 0)
+Modal.BackgroundColor3 = Color3.fromRGB(36, 40, 52)
+Modal.BorderSizePixel = 0
+Modal.ZIndex = 11
+Modal.Parent = Overlay
+Instance.new("UICorner", Modal).CornerRadius = UDim.new(0, 12)
+
+local MTitle = Instance.new("TextLabel")
+MTitle.Size = UDim2.new(1, -40, 0, 26)
+MTitle.Position = UDim2.new(0, 14, 0, 12)
+MTitle.BackgroundTransparency = 1
+MTitle.Text = "Select Your Option"
+MTitle.TextColor3 = C.Text
+MTitle.TextSize = 15
+MTitle.Font = Enum.Font.GothamBold
+MTitle.TextXAlignment = Enum.TextXAlignment.Left
+MTitle.ZIndex = 12
+MTitle.Parent = Modal
+
+local MSub = Instance.new("TextLabel")
+MSub.Size = UDim2.new(1, -28, 0, 30)
+MSub.Position = UDim2.new(0, 14, 0, 36)
+MSub.BackgroundTransparency = 1
+MSub.Text = "Choose whether to execute, open in a new tab, etc.."
+MSub.TextColor3 = C.Sub
+MSub.TextSize = 10
+MSub.Font = Enum.Font.Gotham
+MSub.TextXAlignment = Enum.TextXAlignment.Left
+MSub.TextWrapped = true
+MSub.ZIndex = 12
+MSub.Parent = Modal
+
+local MClose = Instance.new("TextButton")
+MClose.Size = UDim2.new(0, 24, 0, 24)
+MClose.Position = UDim2.new(1, -28, 0, 8)
+MClose.BackgroundTransparency = 1
+MClose.Text = "X"
+MClose.TextColor3 = C.Sub
+MClose.TextSize = 13
+MClose.Font = Enum.Font.GothamBold
+MClose.BorderSizePixel = 0
+MClose.ZIndex = 13
+MClose.Parent = Modal
+
+local function MakeModalBtn(label, yPos)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -28, 0, 32)
+    b.Position = UDim2.new(0, 14, 0, yPos)
+    b.BackgroundColor3 = Color3.fromRGB(44, 50, 66)
+    b.Text = label
+    b.TextColor3 = C.Text
+    b.TextSize = 10
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.ZIndex = 12
+    b.Parent = Modal
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+    Instance.new("UIStroke", b).Color = C.Accent
+    b.MouseEnter:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(55, 65, 88)}):Play()
+    end)
+    b.MouseLeave:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(44, 50, 66)}):Play()
+    end)
+    return b
 end
 
--- Create Titlebar GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AdminTitlebar"
-screenGui.Parent = player.PlayerGui
-screenGui.ResetOnSpawn = false
+local BtnExecute = MakeModalBtn("EXECUTE SELECTED SCRIPT",  70)
+local BtnEditor  = MakeModalBtn("OPEN SCRIPT IN EDITOR",   110)
+local BtnSave    = MakeModalBtn("SAVE SELECTED SCRIPT",    150)
+local BtnCopy    = MakeModalBtn("COPY TO CLIPBOARD",       190)
 
--- Main titlebar frame
-local titlebar = Instance.new("Frame")
-titlebar.Size = UDim2.new(1, 0, 0, 40)
-titlebar.Position = UDim2.new(0, 0, 0, 0)
-titlebar.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-titlebar.BackgroundTransparency = 0.15
-titlebar.BorderSizePixel = 0
-titlebar.Parent = screenGui
+-- =====================
+--   MODAL LOGIC
+-- =====================
+local selectedScript = nil
 
--- Top border line
-local topBorder = Instance.new("Frame")
-topBorder.Size = UDim2.new(1, 0, 0, 2)
-topBorder.Position = UDim2.new(0, 0, 0, 0)
-topBorder.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-topBorder.BorderSizePixel = 0
-topBorder.Parent = titlebar
-
-local function updateBorderColor()
-    local yourRank = getPlayerRank(player)
-    if yourRank == "Owner" then
-        topBorder.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-    elseif yourRank == "Co-Owner" then
-        topBorder.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-    elseif yourRank == "Head Admin" then
-        topBorder.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-    elseif yourRank == "Admin" then
-        topBorder.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
-    elseif yourRank == "Moderator" then
-        topBorder.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
-    else
-        topBorder.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    end
+local function OpenModal(data)
+    selectedScript = data
+    BtnExecute.Text = "EXECUTE SELECTED SCRIPT"
+    BtnEditor.Text  = "OPEN SCRIPT IN EDITOR"
+    BtnSave.Text    = "SAVE SELECTED SCRIPT"
+    BtnCopy.Text    = "COPY TO CLIPBOARD"
+    Overlay.Visible = true
+    Modal.Size = UDim2.new(0, 0, 0, 0)
+    TweenService:Create(Modal, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 290, 0, 238)
+    }):Play()
 end
 
--- Left section: Your Rank and Name
-local leftSection = Instance.new("Frame")
-leftSection.Size = UDim2.new(0, 200, 1, 0)
-leftSection.Position = UDim2.new(0, 10, 0, 0)
-leftSection.BackgroundTransparency = 1
-leftSection.Parent = titlebar
-
-local rankLabel = Instance.new("TextLabel")
-rankLabel.Size = UDim2.new(0, 80, 1, 0)
-rankLabel.Position = UDim2.new(0, 0, 0, 0)
-rankLabel.BackgroundTransparency = 1
-rankLabel.Text = getPlayerRank(player)
-rankLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-rankLabel.TextSize = 18
-rankLabel.Font = Enum.Font.GothamBold
-rankLabel.TextXAlignment = Enum.TextXAlignment.Left
-rankLabel.Parent = leftSection
-
-local nameLabel = Instance.new("TextLabel")
-nameLabel.Size = UDim2.new(0, 120, 1, 0)
-nameLabel.Position = UDim2.new(0, 85, 0, 0)
-nameLabel.BackgroundTransparency = 1
-nameLabel.Text = player.Name
-nameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-nameLabel.TextSize = 16
-nameLabel.Font = Enum.Font.Gotham
-nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-nameLabel.Parent = leftSection
-
-local separator = Instance.new("Frame")
-separator.Size = UDim2.new(0, 1, 0, 25)
-separator.Position = UDim2.new(0, 205, 0, 7)
-separator.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
-separator.BorderSizePixel = 0
-separator.Parent = titlebar
-
--- Middle section: Only prefix info (removed long command list)
-local middleSection = Instance.new("Frame")
-middleSection.Size = UDim2.new(0, 150, 1, 0)
-middleSection.Position = UDim2.new(0, 220, 0, 0)
-middleSection.BackgroundTransparency = 1
-middleSection.Parent = titlebar
-
-local prefixLabel = Instance.new("TextLabel")
-prefixLabel.Size = UDim2.new(1, 0, 1, 0)
-prefixLabel.Position = UDim2.new(0, 0, 0, 0)
-prefixLabel.BackgroundTransparency = 1
-prefixLabel.Text = "Prefix: " .. prefix .. " | Type " .. prefix .. "cmds"
-prefixLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-prefixLabel.TextSize = 14
-prefixLabel.Font = Enum.Font.Gotham
-prefixLabel.TextXAlignment = Enum.TextXAlignment.Left
-prefixLabel.Parent = middleSection
-
--- Right section: Command counter and toggle
-local rightSection = Instance.new("Frame")
-rightSection.Size = UDim2.new(0, 120, 1, 0)
-rightSection.Position = UDim2.new(1, -130, 0, 0)
-rightSection.BackgroundTransparency = 1
-rightSection.Parent = titlebar
-
-local counterLabel = Instance.new("TextLabel")
-counterLabel.Size = UDim2.new(0, 50, 1, 0)
-counterLabel.Position = UDim2.new(0, 0, 0, 0)
-counterLabel.BackgroundTransparency = 1
-counterLabel.Text = "0"
-counterLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-counterLabel.TextSize = 18
-counterLabel.Font = Enum.Font.GothamBold
-counterLabel.TextXAlignment = Enum.TextXAlignment.Right
-counterLabel.Parent = rightSection
-
-local commandsText = Instance.new("TextLabel")
-commandsText.Size = UDim2.new(0, 60, 1, 0)
-commandsText.Position = UDim2.new(0, 55, 0, 0)
-commandsText.BackgroundTransparency = 1
-commandsText.Text = "logs"
-commandsText.TextColor3 = Color3.fromRGB(120, 120, 140)
-commandsText.TextSize = 12
-commandsText.Font = Enum.Font.Gotham
-commandsText.TextXAlignment = Enum.TextXAlignment.Left
-commandsText.Parent = rightSection
-
--- Spectate indicator (shows when spectating)
-local spectateIndicator = Instance.new("Frame")
-spectateIndicator.Size = UDim2.new(0, 200, 0, 30)
-spectateIndicator.Position = UDim2.new(0.5, -100, 1, -40)
-spectateIndicator.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
-spectateIndicator.BackgroundTransparency = 0.25
-spectateIndicator.BorderSizePixel = 1
-spectateIndicator.BorderColor3 = Color3.fromRGB(255, 100, 50)
-spectateIndicator.Visible = false
-spectateIndicator.Parent = screenGui
-
-local spectateCorner = Instance.new("UICorner")
-spectateCorner.CornerRadius = UDim.new(0, 8)
-spectateCorner.Parent = spectateIndicator
-
-local spectateText = Instance.new("TextLabel")
-spectateText.Size = UDim2.new(1, 0, 1, 0)
-spectateText.BackgroundTransparency = 1
-spectateText.Text = "SPECTATING: None"
-spectateText.TextColor3 = Color3.fromRGB(255, 255, 255)
-spectateText.TextSize = 14
-spectateText.Font = Enum.Font.GothamBold
-spectateText.Parent = spectateIndicator
-
-local stopSpectateButton = Instance.new("TextButton")
-stopSpectateButton.Size = UDim2.new(0, 60, 1, 0)
-stopSpectateButton.Position = UDim2.new(1, -65, 0, 0)
-stopSpectateButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-stopSpectateButton.Text = "STOP"
-stopSpectateButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-stopSpectateButton.TextSize = 12
-stopSpectateButton.Font = Enum.Font.GothamBold
-stopSpectateButton.Parent = spectateIndicator
-
-local stopCorner = Instance.new("UICorner")
-stopCorner.CornerRadius = UDim.new(0, 6)
-stopCorner.Parent = stopSpectateButton
-
--- AntiSit status indicator
-local antiSitIndicator = Instance.new("Frame")
-antiSitIndicator.Size = UDim2.new(0, 150, 0, 25)
-antiSitIndicator.Position = UDim2.new(0.5, -75, 1, -70)
-antiSitIndicator.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-antiSitIndicator.BackgroundTransparency = 0.2
-antiSitIndicator.BorderSizePixel = 1
-antiSitIndicator.BorderColor3 = Color3.fromRGB(0, 255, 0)
-antiSitIndicator.Visible = false
-antiSitIndicator.Parent = screenGui
-
-local antiSitCorner = Instance.new("UICorner")
-antiSitCorner.CornerRadius = UDim.new(0, 8)
-antiSitCorner.Parent = antiSitIndicator
-
-local antiSitText = Instance.new("TextLabel")
-antiSitText.Size = UDim2.new(1, 0, 1, 0)
-antiSitText.BackgroundTransparency = 1
-antiSitText.Text = "ANTI-SIT: ENABLED"
-antiSitText.TextColor3 = Color3.fromRGB(0, 255, 0)
-antiSitText.TextSize = 12
-antiSitText.Font = Enum.Font.GothamBold
-antiSitText.Parent = antiSitIndicator
-
--- Log panel
-local logPanel = Instance.new("Frame")
-logPanel.Size = UDim2.new(0, 400, 0, 300)
-logPanel.Position = UDim2.new(1, -410, 0, 40)
-logPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-logPanel.BackgroundTransparency = 0.1
-logPanel.BorderSizePixel = 1
-logPanel.BorderColor3 = Color3.fromRGB(255, 215, 0)
-logPanel.Visible = false
-logPanel.Parent = screenGui
-
-local logCorner = Instance.new("UICorner")
-logCorner.CornerRadius = UDim.new(0, 6)
-logCorner.Parent = logPanel
-
-local logTitle = Instance.new("TextLabel")
-logTitle.Size = UDim2.new(1, 0, 0, 30)
-logTitle.Position = UDim2.new(0, 0, 0, 0)
-logTitle.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-logTitle.BackgroundTransparency = 0.2
-logTitle.Text = "COMMAND LOG"
-logTitle.TextColor3 = Color3.fromRGB(0, 0, 0)
-logTitle.TextSize = 16
-logTitle.Font = Enum.Font.GothamBold
-logTitle.Parent = logPanel
-
-local logList = Instance.new("ScrollingFrame")
-logList.Size = UDim2.new(1, 0, 1, -30)
-logList.Position = UDim2.new(0, 0, 0, 30)
-logList.BackgroundTransparency = 1
-logList.CanvasSize = UDim2.new(0, 0, 0, 0)
-logList.Parent = logPanel
-
-local logLayout = Instance.new("UIListLayout")
-logLayout.Padding = UDim.new(0, 2)
-logLayout.Parent = logList
-
--- Command list panel (for ;cmds and ;commands) - NARROWER WIDTH
-local commandPanel = Instance.new("Frame")
-commandPanel.Size = UDim2.new(0, 550, 0, 450)
-commandPanel.Position = UDim2.new(0.5, -275, 0.5, -225)
-commandPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-commandPanel.BackgroundTransparency = 0.05
-commandPanel.BorderSizePixel = 2
-commandPanel.BorderColor3 = Color3.fromRGB(255, 215, 0)
-commandPanel.Visible = false
-commandPanel.Parent = screenGui
-
-local commandPanelCorner = Instance.new("UICorner")
-commandPanelCorner.CornerRadius = UDim.new(0, 10)
-commandPanelCorner.Parent = commandPanel
-
-local commandPanelTitle = Instance.new("TextLabel")
-commandPanelTitle.Size = UDim2.new(1, 0, 0, 40)
-commandPanelTitle.Position = UDim2.new(0, 0, 0, 0)
-commandPanelTitle.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-commandPanelTitle.BackgroundTransparency = 0.3
-commandPanelTitle.Text = "AVAILABLE COMMANDS"
-commandPanelTitle.TextColor3 = Color3.fromRGB(0, 0, 0)
-commandPanelTitle.TextSize = 18
-commandPanelTitle.Font = Enum.Font.GothamBold
-commandPanelTitle.Parent = commandPanel
-
--- Header row
-local headerFrame = Instance.new("Frame")
-headerFrame.Size = UDim2.new(1, -20, 0, 30)
-headerFrame.Position = UDim2.new(0, 10, 0, 45)
-headerFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-headerFrame.BackgroundTransparency = 0.5
-headerFrame.BorderSizePixel = 0
-headerFrame.Parent = commandPanel
-
-local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 5)
-headerCorner.Parent = headerFrame
-
-local headerCmd = Instance.new("TextLabel")
-headerCmd.Size = UDim2.new(0.35, -5, 1, 0)
-headerCmd.Position = UDim2.new(0, 5, 0, 0)
-headerCmd.BackgroundTransparency = 1
-headerCmd.Text = "COMMAND"
-headerCmd.TextColor3 = Color3.fromRGB(255, 215, 0)
-headerCmd.TextSize = 13
-headerCmd.Font = Enum.Font.GothamBold
-headerCmd.TextXAlignment = Enum.TextXAlignment.Left
-headerCmd.Parent = headerFrame
-
-local headerDesc = Instance.new("TextLabel")
-headerDesc.Size = UDim2.new(0.45, -5, 1, 0)
-headerDesc.Position = UDim2.new(0.35, 5, 0, 0)
-headerDesc.BackgroundTransparency = 1
-headerDesc.Text = "DESCRIPTION"
-headerDesc.TextColor3 = Color3.fromRGB(255, 215, 0)
-headerDesc.TextSize = 13
-headerDesc.Font = Enum.Font.GothamBold
-headerDesc.TextXAlignment = Enum.TextXAlignment.Left
-headerDesc.Parent = headerFrame
-
-local headerRank = Instance.new("TextLabel")
-headerRank.Size = UDim2.new(0.18, -5, 1, 0)
-headerRank.Position = UDim2.new(0.8, 0, 0, 0)
-headerRank.BackgroundTransparency = 1
-headerRank.Text = "RANK"
-headerRank.TextColor3 = Color3.fromRGB(255, 215, 0)
-headerRank.TextSize = 12
-headerRank.Font = Enum.Font.GothamBold
-headerRank.TextXAlignment = Enum.TextXAlignment.Center
-headerRank.Parent = headerFrame
-
-local commandList = Instance.new("ScrollingFrame")
-commandList.Size = UDim2.new(1, -20, 1, -90)
-commandList.Position = UDim2.new(0, 10, 0, 80)
-commandList.BackgroundTransparency = 1
-commandList.CanvasSize = UDim2.new(0, 0, 0, 0)
-commandList.Parent = commandPanel
-
-local commandListLayout = Instance.new("UIListLayout")
-commandListLayout.Padding = UDim.new(0, 4)
-commandListLayout.Parent = commandList
-
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 80, 0, 30)
-closeButton.Position = UDim2.new(0.5, -40, 1, -40)
-closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-closeButton.Text = "CLOSE"
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.TextSize = 14
-closeButton.Font = Enum.Font.GothamBold
-closeButton.Parent = commandPanel
-
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 5)
-closeCorner.Parent = closeButton
-
-closeButton.MouseButton1Click:Connect(function()
-    commandPanel.Visible = false
-end)
-
--- Spectate functions
-local function stopSpectating()
-    if isSpectating then
-        isSpectating = false
-        if originalCameraSubject then
-            camera.CameraSubject = originalCameraSubject
-        else
-            local character = player.Character
-            if character and character:FindFirstChild("Humanoid") then
-                camera.CameraSubject = character.Humanoid
-            end
-        end
-        currentSpectateTarget = nil
-        spectateIndicator.Visible = false
-        addLog("Stopped spectating")
-    end
+local function CloseModal()
+    TweenService:Create(Modal, TweenInfo.new(0.15), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+    task.wait(0.18)
+    Overlay.Visible = false
+    selectedScript = nil
 end
 
-local function startSpectating(targetPlayer)
-    if not hasPermission(player, "Moderator") then
-        addLog("Permission denied: You need Moderator+ rank to spectate")
-        return false
-    end
-    
-    if not targetPlayer or not targetPlayer.Character then
-        addLog("Cannot spectate: Player has no character")
-        return false
-    end
-    
-    -- Stop current spectate if any
-    if isSpectating then
-        stopSpectating()
-    end
-    
-    originalCameraSubject = camera.CameraSubject
-    currentSpectateTarget = targetPlayer
-    
-    -- Set up spectate
-    local character = targetPlayer.Character
-    local humanoid = character:FindFirstChild("Humanoid")
-    if humanoid then
-        camera.CameraSubject = humanoid
-        isSpectating = true
-        
-        -- Update indicator
-        spectateText.Text = "SPECTATING: " .. targetPlayer.Name
-        spectateIndicator.Visible = true
-        
-        addLog(player.Name .. " [" .. getPlayerRank(player) .. "] started spectating " .. targetPlayer.Name .. " [" .. getPlayerRank(targetPlayer) .. "]")
-        return true
-    end
-    return false
-end
+MClose.MouseButton1Click:Connect(CloseModal)
 
-local function viewPlayer(targetPlayer)
-    return startSpectating(targetPlayer)
-end
-
--- AntiSit functions
-local function enableAntiSit()
-    if antiSitEnabled then
-        addLog("Anti-Sit is already enabled")
+BtnExecute.MouseButton1Click:Connect(function()
+    if not selectedScript then return end
+    local src = selectedScript.script
+    if not src or src == "" then
+        BtnExecute.Text = "No Script Content"
+        task.wait(2); BtnExecute.Text = "EXECUTE SELECTED SCRIPT"
         return
     end
-    
-    antiSitEnabled = true
-    antiSitConnection = game:GetService("RunService").Heartbeat:Connect(function()
-        local character = player.Character
-        if character then
-            local humanoid = character:FindFirstChild("Humanoid")
-            if humanoid and humanoid.Sit then
-                humanoid.Sit = false
+    CloseModal()
+    task.spawn(function()
+        local fn, err = loadstring(src)
+        if fn then
+            local ok, runErr = pcall(fn)
+            if not ok then warn("GhostHub Execute Error: " .. tostring(runErr)) end
+        else
+            warn("GhostHub Loadstring Error: " .. tostring(err))
+        end
+    end)
+end)
+
+BtnEditor.MouseButton1Click:Connect(function()
+    if not selectedScript then return end
+    pcall(setclipboard, selectedScript.script or "")
+    BtnEditor.Text = "Copied to Clipboard"
+    task.wait(2); BtnEditor.Text = "OPEN SCRIPT IN EDITOR"
+end)
+
+BtnSave.MouseButton1Click:Connect(function()
+    if not selectedScript then return end
+    local name = (selectedScript.title or "script"):gsub("[^%w%s]", ""):gsub("%s+", "_")
+    local ok = pcall(writefile, name .. ".lua", selectedScript.script or "")
+    BtnSave.Text = ok and "Saved!" or "Save Failed"
+    task.wait(2); BtnSave.Text = "SAVE SELECTED SCRIPT"
+end)
+
+BtnCopy.MouseButton1Click:Connect(function()
+    if not selectedScript then return end
+    pcall(setclipboard, selectedScript.script or "")
+    BtnCopy.Text = "Copied!"
+    task.wait(2); BtnCopy.Text = "COPY TO CLIPBOARD"
+end)
+
+-- =====================
+--   THUMBNAIL FETCH
+-- =====================
+local function FetchThumbnail(gameId, imageLabel)
+    task.spawn(function()
+        local ok, res = pcall(game.HttpGet, game,
+            string.format(C.ThumbAPI, tostring(gameId))
+        )
+        if not ok then return end
+        local ok2, data = pcall(HttpService.JSONDecode, HttpService, res)
+        if not ok2 then return end
+        if data and data.data and data.data[1] then
+            local url = data.data[1].imageUrl
+            if url and url ~= "" then
+                imageLabel.Image = url
             end
         end
     end)
-    
-    antiSitIndicator.Visible = true
-    addLog("Anti-Sit enabled - You cannot sit down")
 end
 
-local function disableAntiSit()
-    if not antiSitEnabled then
-        addLog("Anti-Sit is not enabled")
+-- =====================
+--   SCRIPT CARDS
+-- =====================
+local function ClearCards()
+    for _, c in ipairs(Scroll:GetChildren()) do
+        if c:IsA("Frame") then c:Destroy() end
+    end
+end
+
+local function MakeCard(data, idx)
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 0, 72)
+    card.BackgroundColor3 = C.Card
+    card.BorderSizePixel = 0
+    card.LayoutOrder = idx
+    card.ZIndex = 3
+    card.Parent = Scroll
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
+    local cs = Instance.new("UIStroke", card)
+    cs.Color = Color3.fromRGB(48, 52, 68)
+    cs.Thickness = 1
+
+    -- Thumbnail
+    local thumb = Instance.new("ImageLabel")
+    thumb.Size = UDim2.new(0, 58, 0, 58)
+    thumb.Position = UDim2.new(0, 8, 0.5, -29)
+    thumb.BackgroundColor3 = Color3.fromRGB(30, 33, 44)
+    thumb.BorderSizePixel = 0
+    thumb.Image = ""
+    thumb.ScaleType = Enum.ScaleType.Crop
+    thumb.ZIndex = 4
+    thumb.Parent = card
+    Instance.new("UICorner", thumb).CornerRadius = UDim.new(0, 6)
+
+    -- Placeholder text while loading
+    local ph = Instance.new("TextLabel")
+    ph.Size = UDim2.new(1, 0, 1, 0)
+    ph.BackgroundTransparency = 1
+    ph.Text = "..."
+    ph.TextColor3 = C.Sub
+    ph.TextSize = 10
+    ph.Font = Enum.Font.Gotham
+    ph.ZIndex = 5
+    ph.Parent = thumb
+
+    local gameId = data.game and data.game.gameId
+    if gameId and gameId ~= 0 then
+        FetchThumbnail(gameId, thumb)
+        thumb:GetPropertyChangedSignal("Image"):Connect(function()
+            if thumb.Image ~= "" then ph.Visible = false end
+        end)
+    end
+
+    -- Verified badge
+    if data.verified then
+        local vb = Instance.new("TextLabel")
+        vb.Size = UDim2.new(0, 54, 0, 14)
+        vb.Position = UDim2.new(1, -60, 0, 8)
+        vb.BackgroundColor3 = Color3.fromRGB(40, 100, 200)
+        vb.Text = "VERIFIED"
+        vb.TextColor3 = Color3.new(1,1,1)
+        vb.TextSize = 7
+        vb.Font = Enum.Font.GothamBold
+        vb.BorderSizePixel = 0
+        vb.ZIndex = 5
+        vb.Parent = card
+        Instance.new("UICorner", vb).CornerRadius = UDim.new(0, 4)
+    end
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -130, 0, 18)
+    title.Position = UDim2.new(0, 74, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Text = data.title or "Unknown"
+    title.TextColor3 = C.Text
+    title.TextSize = 12
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.TextTruncate = Enum.TextTruncate.AtEnd
+    title.ZIndex = 4
+    title.Parent = card
+
+    local gameLbl = Instance.new("TextLabel")
+    gameLbl.Size = UDim2.new(1, -130, 0, 14)
+    gameLbl.Position = UDim2.new(0, 74, 0, 29)
+    gameLbl.BackgroundTransparency = 1
+    gameLbl.Text = data.isUniversal and "Universal Script" or (data.game and data.game.name or "Unknown Game")
+    gameLbl.TextColor3 = C.Sub
+    gameLbl.TextSize = 10
+    gameLbl.Font = Enum.Font.Gotham
+    gameLbl.TextXAlignment = Enum.TextXAlignment.Left
+    gameLbl.TextTruncate = Enum.TextTruncate.AtEnd
+    gameLbl.ZIndex = 4
+    gameLbl.Parent = card
+
+    local viewsLbl = Instance.new("TextLabel")
+    viewsLbl.Size = UDim2.new(1, -130, 0, 13)
+    viewsLbl.Position = UDim2.new(0, 74, 0, 48)
+    viewsLbl.BackgroundTransparency = 1
+
+    local meta = tostring(data.views or 0) .. " Views"
+    if data.isPatched then meta = meta .. "  [Patched]" end
+    if data.key then meta = meta .. "  🔑 Key" end
+    viewsLbl.Text = meta
+    viewsLbl.TextColor3 = C.Sub
+    viewsLbl.TextSize = 9
+    viewsLbl.Font = Enum.Font.Gotham
+    viewsLbl.TextXAlignment = Enum.TextXAlignment.Left
+    viewsLbl.ZIndex = 4
+    viewsLbl.Parent = card
+
+    local clickArea = Instance.new("TextButton")
+    clickArea.Size = UDim2.new(1, 0, 1, 0)
+    clickArea.BackgroundTransparency = 1
+    clickArea.Text = ""
+    clickArea.ZIndex = 6
+    clickArea.Parent = card
+    clickArea.MouseButton1Click:Connect(function() OpenModal(data) end)
+
+    card.MouseEnter:Connect(function()
+        TweenService:Create(card, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(45, 50, 65)}):Play()
+    end)
+    card.MouseLeave:Connect(function()
+        TweenService:Create(card, TweenInfo.new(0.12), {BackgroundColor3 = C.Card}):Play()
+    end)
+end
+
+-- =====================
+--   SEARCH
+-- =====================
+local function DoSearch(q)
+    q = q:match("^%s*(.-)%s*$")
+    if q == "" then return end
+    ClearCards()
+    Status.Text = "Searching..."
+    Status.TextColor3 = C.Accent
+
+    local ok, res = pcall(game.HttpGet, game, string.format(C.API, HttpService:UrlEncode(q)))
+    if not ok then
+        Status.Text = "⚠ HTTP request failed. Enable HTTP requests."
+        Status.TextColor3 = C.Red
         return
     end
-    
-    if antiSitConnection then
-        antiSitConnection:Disconnect()
-        antiSitConnection = nil
+
+    local ok2, data = pcall(HttpService.JSONDecode, HttpService, res)
+    if not ok2 or not data or not data.result then
+        Status.Text = "⚠ Could not parse response."
+        Status.TextColor3 = C.Red
+        return
     end
-    
-    antiSitEnabled = false
-    antiSitIndicator.Visible = false
-    addLog("Anti-Sit disabled - You can now sit down")
-end
 
-local function toggleAntiSit()
-    if antiSitEnabled then
-        disableAntiSit()
-    else
-        enableAntiSit()
+    local scripts = data.result.scripts
+    if not scripts or #scripts == 0 then
+        Status.Text = 'No results for "' .. q .. '"'
+        Status.TextColor3 = C.Sub
+        return
     end
-end
 
--- Stop spectate button
-stopSpectateButton.MouseButton1Click:Connect(function()
-    stopSpectating()
-end)
+    Status.Text = #scripts .. ' results for "' .. q .. '"'
+    Status.TextColor3 = C.Green
 
--- Handle character respawn (stop spectating if player dies)
-player.CharacterAdded:Connect(function(character)
-    if isSpectating then
-        stopSpectating()
-    end
-    -- AntiSit will automatically work with new character
-end)
-
--- Handle target player leaving
-game.Players.PlayerRemoving:Connect(function(leavingPlayer)
-    if isSpectating and currentSpectateTarget == leavingPlayer then
-        addLog("Spectate target left the game!")
-        stopSpectating()
-    end
-end)
-
--- Toggle log panel
-local rightSectionButton = Instance.new("TextButton")
-rightSectionButton.Size = UDim2.new(1, 0, 1, 0)
-rightSectionButton.Position = UDim2.new(0, 0, 0, 0)
-rightSectionButton.BackgroundTransparency = 1
-rightSectionButton.Text = ""
-rightSectionButton.Parent = rightSection
-
-local commandCount = 0
-local logs = {}
-
-local function addLog(message)
-    table.insert(logs, 1, os.date("%H:%M:%S") .. " - " .. message)
-    if #logs > 30 then table.remove(logs) end
-    
-    for _, child in pairs(logList:GetChildren()) do
-        if child:IsA("TextLabel") then child:Destroy() end
-    end
-    
-    for i, log in ipairs(logs) do
-        local logLabel = Instance.new("TextLabel")
-        logLabel.Size = UDim2.new(1, -10, 0, 20)
-        logLabel.Position = UDim2.new(0, 5, 0, 0)
-        logLabel.Text = log
-        logLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-        logLabel.TextSize = 11
-        logLabel.TextXAlignment = Enum.TextXAlignment.Left
-        logLabel.BackgroundTransparency = 1
-        logLabel.Parent = logList
-    end
-    
-    logList.CanvasSize = UDim2.new(0, 0, 0, #logs * 22)
-end
-
-rightSectionButton.MouseButton1Click:Connect(function()
-    logPanel.Visible = not logPanel.Visible
-    if commandPanel.Visible then commandPanel.Visible = false end
-end)
-
--- Teleport function
-local function teleportTo(targetPlayer, executor)
-    local character = player.Character
-    local targetChar = targetPlayer.Character
-    if character and targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
-        local rootPart = character:FindFirstChild("HumanoidRootPart")
-        if rootPart then
-            rootPart.CFrame = targetChar.HumanoidRootPart.CFrame
-            addLog(executor.Name .. " [" .. getPlayerRank(executor) .. "] teleported to " .. targetPlayer.Name .. " [" .. getPlayerRank(targetPlayer) .. "]")
-        end
+    for i, s in ipairs(scripts) do
+        MakeCard(s, i)
     end
 end
 
--- Find player function
-local function findPlayer(searchName)
-    local searchLower = searchName:lower()
-    for _, plr in pairs(game.Players:GetPlayers()) do
-        if plr.Name:lower():sub(1, #searchLower) == searchLower then
-            return plr
-        end
-        if plr.DisplayName and plr.DisplayName:lower():sub(1, #searchLower) == searchLower then
-            return plr
-        end
-    end
-    return nil
-end
+GoBtn.MouseButton1Click:Connect(function() DoSearch(SBox.Text) end)
+SBox.FocusLost:Connect(function(enter) if enter then DoSearch(SBox.Text) end end)
 
--- Update prefix display
-local function updatePrefixDisplay()
-    prefixLabel.Text = "Prefix: " .. prefix .. " | Type " .. prefix .. "cmds"
-end
+-- =====================
+--   DRAGGING (on Main directly)
+-- =====================
+local dragging = false
+local dragStart, startPos
 
--- Load Anti-Void (Admin+ rank required - level 70)
-local function loadAntiVoid()
-    if hasPermission(player, "Admin") then
-        local success, err = pcall(function()
-            loadstring(game:HttpGet("https://pastebin.com/raw/5zcfvyhT"))()
-        end)
-        if success then
-            addLog("Anti-Void loaded successfully (Admin+ rank required)")
-        else
-            addLog("Failed to load Anti-Void: " .. tostring(err))
-        end
-    else
-        addLog("Permission denied: You need Admin+ rank to use Anti-Void")
-    end
-end
-
--- Load Infinite Jump (Moderator+ rank required - level 60)
-local function loadInfiniteJump()
-    if hasPermission(player, "Moderator") then
-        local success, err = pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/Johan319/fe-infjump-/refs/heads/main/fe%20infjump"))()
-        end)
-        if success then
-            addLog("Infinite Jump loaded successfully (Moderator+ rank required)")
-        else
-            addLog("Failed to load Infinite Jump: " .. tostring(err))
-        end
-    else
-        addLog("Permission denied: You need Moderator+ rank to use Infinite Jump")
-    end
-end
-
--- Show commands panel (commands sorted by required rank: highest first)
-local function showCommandsPanel()
-    -- Clear existing commands
-    for _, child in pairs(commandList:GetChildren()) do
-        if child:IsA("Frame") then child:Destroy() end
-    end
-    
-    -- Commands sorted by required rank (highest to lowest)
-    local commands = {
-        -- Admin+ commands (highest rank required)
-        {cmd = "antivoid", desc = "Load anti-void script", rank = "Admin", rankLevel = 70},
-        {cmd = "antisit", desc = "Toggle anti-sit", rank = "Admin", rankLevel = 70},
-        -- Moderator+ commands
-        {cmd = "tp/goto/to <player>", desc = "Teleport to player", rank = "Moderator", rankLevel = 60},
-        {cmd = "view/spectate <player>", desc = "Spectate player", rank = "Moderator", rankLevel = 60},
-        {cmd = "infjump", desc = "Infinite jump", rank = "Moderator", rankLevel = 60},
-        {cmd = "prefix <char>", desc = "Change prefix", rank = "Moderator", rankLevel = 60},
-        -- Member commands (everyone)
-        {cmd = "rejoin", desc = "Rejoin game", rank = "Member", rankLevel = 10},
-        {cmd = "reset", desc = "Reset character", rank = "Member", rankLevel = 10},
-        {cmd = "cmds/commands", desc = "Show this list", rank = "Member", rankLevel = 10},
-    }
-    
-    -- Sort commands by rankLevel descending (highest first)
-    table.sort(commands, function(a, b)
-        return a.rankLevel > b.rankLevel
-    end)
-    
-    for _, cmdInfo in ipairs(commands) do
-        local cmdFrame = Instance.new("Frame")
-        cmdFrame.Size = UDim2.new(1, 0, 0, 30)
-        cmdFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-        cmdFrame.BackgroundTransparency = 0.3
-        cmdFrame.BorderSizePixel = 0
-        cmdFrame.Parent = commandList
-        
-        local cmdCorner = Instance.new("UICorner")
-        cmdCorner.CornerRadius = UDim.new(0, 5)
-        cmdCorner.Parent = cmdFrame
-        
-        -- Command text (left column)
-        local cmdText = Instance.new("TextLabel")
-        cmdText.Size = UDim2.new(0.35, -5, 1, 0)
-        cmdText.Position = UDim2.new(0, 5, 0, 0)
-        cmdText.BackgroundTransparency = 1
-        cmdText.Text = cmdInfo.cmd
-        cmdText.TextColor3 = Color3.fromRGB(255, 215, 0)
-        cmdText.TextSize = 12
-        cmdText.Font = Enum.Font.GothamBold
-        cmdText.TextXAlignment = Enum.TextXAlignment.Left
-        cmdText.Parent = cmdFrame
-        
-        -- Description text (middle column)
-        local descText = Instance.new("TextLabel")
-        descText.Size = UDim2.new(0.45, -5, 1, 0)
-        descText.Position = UDim2.new(0.35, 5, 0, 0)
-        descText.BackgroundTransparency = 1
-        descText.Text = cmdInfo.desc
-        descText.TextColor3 = Color3.fromRGB(200, 200, 200)
-        descText.TextSize = 12
-        descText.Font = Enum.Font.Gotham
-        descText.TextXAlignment = Enum.TextXAlignment.Left
-        descText.Parent = cmdFrame
-        
-        -- Rank requirement text (right column)
-        local rankText = Instance.new("TextLabel")
-        rankText.Size = UDim2.new(0.18, -5, 1, 0)
-        rankText.Position = UDim2.new(0.8, 0, 0, 0)
-        rankText.BackgroundTransparency = 1
-        rankText.Text = cmdInfo.rank
-        rankText.TextColor3 = cmdInfo.rank == "Admin" and Color3.fromRGB(0, 255, 100) or
-                              cmdInfo.rank == "Moderator" and Color3.fromRGB(255, 170, 0) or
-                              Color3.fromRGB(150, 150, 150)
-        rankText.TextSize = 11
-        rankText.Font = Enum.Font.GothamBold
-        rankText.TextXAlignment = Enum.TextXAlignment.Center
-        rankText.Parent = cmdFrame
-    end
-    
-    commandList.CanvasSize = UDim2.new(0, 0, 0, #commands * 38)
-    commandPanel.Visible = true
-    if logPanel.Visible then logPanel.Visible = false end
-end
-
--- Command handler
-player.Chatted:Connect(function(msg)
-    if msg:sub(1, 1) == prefix then
-        local args = {}
-        for arg in msg:sub(2):gmatch("%S+") do
-            table.insert(args, arg)
-        end
-        
-        local command = args[1] and args[1]:lower()
-        local targetName = args[2]
-        
-        -- TP Commands (Moderator+)
-        if command == "tp" or command == "goto" or command == "to" then
-            if not hasPermission(player, "Moderator") then
-                addLog("Permission denied: " .. player.Name .. " tried to use " .. command .. " (Required: Moderator)")
-                return
-            end
-            if targetName then
-                local target = findPlayer(targetName)
-                if target then
-                    teleportTo(target, player)
-                    commandCount = commandCount + 1
-                    counterLabel.Text = tostring(commandCount)
-                else
-                    addLog("Player not found: " .. targetName)
-                end
-            else
-                addLog("Usage: " .. prefix .. command .. " <player name>")
-            end
-        
-        -- View / Spectate Commands (Moderator+)
-        elseif command == "view" or command == "spectate" then
-            if not hasPermission(player, "Moderator") then
-                addLog("Permission denied: " .. player.Name .. " tried to use " .. command .. " (Required: Moderator)")
-                return
-            end
-            if targetName then
-                local target = findPlayer(targetName)
-                if target then
-                    if target == player then
-                        addLog("You cannot spectate yourself!")
-                    else
-                        viewPlayer(target)
-                        commandCount = commandCount + 1
-                        counterLabel.Text = tostring(commandCount)
-                    end
-                else
-                    addLog("Player not found: " .. targetName)
-                end
-            else
-                addLog("Usage: " .. prefix .. command .. " <player name>")
-            end
-        
-        -- Anti-Void Command (Admin+)
-        elseif command == "antivoid" then
-            if not hasPermission(player, "Admin") then
-                addLog("Permission denied: " .. player.Name .. " tried to use antivoid (Required: Admin)")
-                return
-            end
-            loadAntiVoid()
-            commandCount = commandCount + 1
-            counterLabel.Text = tostring(commandCount)
-        
-        -- Anti-Sit Command (Admin+)
-        elseif command == "antisit" then
-            if not hasPermission(player, "Admin") then
-                addLog("Permission denied: " .. player.Name .. " tried to use antisit (Required: Admin)")
-                return
-            end
-            toggleAntiSit()
-            commandCount = commandCount + 1
-            counterLabel.Text = tostring(commandCount)
-        
-        -- Infinite Jump Command (Moderator+)
-        elseif command == "infjump" then
-            if not hasPermission(player, "Moderator") then
-                addLog("Permission denied: " .. player.Name .. " tried to use infjump (Required: Moderator)")
-                return
-            end
-            loadInfiniteJump()
-            commandCount = commandCount + 1
-            counterLabel.Text = tostring(commandCount)
-        
-        -- Prefix Command (Moderator+)
-        elseif command == "prefix" then
-            if not hasPermission(player, "Moderator") then
-                addLog("Permission denied: " .. player.Name .. " tried to use prefix command (Required: Moderator)")
-                return
-            end
-            local newPrefix = args[2]
-            if newPrefix and #newPrefix == 1 then
-                prefix = newPrefix
-                updatePrefixDisplay()
-                addLog(player.Name .. " [" .. getPlayerRank(player) .. "] changed prefix to: " .. prefix)
-            else
-                addLog("Usage: " .. prefix .. "prefix <single character>")
-            end
-        
-        -- Rejoin Command (Member)
-        elseif command == "rejoin" then
-            game:GetService("TeleportService"):Teleport(game.PlaceId)
-        
-        -- Reset Command (Member)
-        elseif command == "reset" then
-            if player.Character then
-                player.Character:BreakJoints()
-                addLog(player.Name .. " [" .. getPlayerRank(player) .. "] reset their character")
-            end
-        
-        -- Commands List (Member+ - anyone can see commands)
-        elseif command == "cmds" or command == "commands" then
-            showCommandsPanel()
-            addLog(player.Name .. " [" .. getPlayerRank(player) .. "] viewed the commands list")
-        end
+TBar.InputBegan:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or
+       inp.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = inp.Position
+        startPos = Main.Position
     end
 end)
 
-updateBorderColor()
+TBar.InputEnded:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or
+       inp.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
 
--- Initial setup
-addLog("=== ADMIN TITLEBAR LOADED ===")
-addLog("Your rank: " .. getPlayerRank(player))
-addLog("Commands: tp, goto, to, view, spectate, antivoid (Admin+), antisit (Admin+), infjump (Mod+), prefix, rejoin, reset, cmds, commands")
-addLog("Click 'logs' (right side) for command history!")
-addLog("Type " .. prefix .. "cmds to see all commands")
+UserInputService.InputChanged:Connect(function(inp)
+    if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or
+                     inp.UserInputType == Enum.UserInputType.Touch) then
+        local delta = inp.Position - dragStart
+        Main.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+        -- Keep shadow in sync
+        Shadow.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X + 240,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y + 185 + 6
+        )
+    end
+end)
 
-print("=== Admin Commands + Titlebar Loaded ===")
-print("Current prefix: " .. prefix)
-print("Your rank: " .. getPlayerRank(player))
+-- =====================
+--   MINIMIZE / CLOSE
+-- =====================
+local minimized = false
+local FULL_H = 370
+local MINI_H = 42
+
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    local targetH = minimized and MINI_H or FULL_H
+    TweenService:Create(Main, TweenInfo.new(0.25, Enum.EasingStyle.Quart), {
+        Size = UDim2.new(0, 480, 0, targetH)
+    }):Play()
+    MinBtn.Text = minimized and "+" or "-"
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    TweenService:Create(Main, TweenInfo.new(0.2), {Size = UDim2.new(0, 480, 0, 0)}):Play()
+    task.wait(0.22)
+    Gui:Destroy()
+end)
+
+-- =====================
+--   OPEN ANIMATION
+-- =====================
+TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 480, 0, FULL_H)
+}):Play()
+
+print("GhostHub loaded!")
