@@ -1120,8 +1120,7 @@ local function bringPlayerCouch(target)
         task.wait(0.001)
 
         pcall(function()
-
-        game:GetService(string.char(82,101,112,108,105,99,97,116,101,100,83,116,111,114,97,103,101)).RE:FindFirstChild(string.char(49,84,111,111,49,108)):InvokeServer(string.char(80,105,99,107,105,110,103,84,111,111,108,115), string.char(67,111,117,99,104))
+            game:GetService(string.char(82,101,112,108,105,99,97,116,101,100,83,116,111,114,97,103,101)).RE:FindFirstChild(string.char(49,84,111,111,49,108)):InvokeServer(string.char(80,105,99,107,105,110,103,84,111,111,108,115), string.char(67,111,117,99,104))
         end)
 
         addLog(string.char(66,114,105,110,103,32,102,105,110,105,115,104,101,100,32,111,110,58,32) .. target.Name)
@@ -1186,7 +1185,7 @@ local function jailPlayer(targetPlayer)
         return false
     end
 
-local jogadores = game:GetService(string.char(80,108,97,121,101,114,115))
+    local jogadores = game:GetService(string.char(80,108,97,121,101,114,115))
     local rep = game:GetService(string.char(82,101,112,108,105,99,97,116,101,100,83,116,111,114,97,103,101))
     local loop = game:GetService(string.char(82,117,110,83,101,114,118,105,99,101))
     local mundo = game:GetService(string.char(87,111,114,107,115,112,97,99,101))
@@ -1504,7 +1503,7 @@ local function startLoopKill(targetPlayer)
         end
     end
 
-killData.cleanup = limparSofa
+    killData.cleanup = limparSofa
 
     local function pegarSofa()
         local boneco = eu.Character
@@ -1666,7 +1665,8 @@ end
 
 local function openScriptBlox()
 
-local Players = game:GetService(string.char(80,108,97,121,101,114,115))
+    
+    local Players = game:GetService(string.char(80,108,97,121,101,114,115))
     local TweenService = game:GetService(string.char(84,119,101,101,110,83,101,114,118,105,99,101))
     local HttpService = game:GetService(string.char(72,116,116,112,83,101,114,118,105,99,101))
     local UserInputService = game:GetService(string.char(85,115,101,114,73,110,112,117,116,83,101,114,118,105,99,101))
@@ -1859,6 +1859,7 @@ local Players = game:GetService(string.char(80,108,97,121,101,114,115))
     Status.TextXAlignment = Enum.TextXAlignment.Left
     Status.ZIndex = 3
     Status.Parent = Body
+    
 
     local Scroll = Instance.new(string.char(83,99,114,111,108,108,105,110,103,70,114,97,109,101))
     Scroll.Size = UDim2.new(1, -20, 1, -70)
@@ -2006,8 +2007,8 @@ local Players = game:GetService(string.char(80,108,97,121,101,114,115))
         end)
         return b
     end
-
-local BtnExecute = MakeModalBtn(string.char(69,88,69,67,85,84,69,32,83,69,76,69,67,84,69,68,32,83,67,82,73,80,84),  70)
+    
+    local BtnExecute = MakeModalBtn(string.char(69,88,69,67,85,84,69,32,83,69,76,69,67,84,69,68,32,83,67,82,73,80,84),  70)
     local BtnEditor  = MakeModalBtn(string.char(79,80,69,78,32,83,67,82,73,80,84,32,73,78,32,69,68,73,84,79,82),   110)
     local BtnSave    = MakeModalBtn(string.char(83,65,86,69,32,83,69,76,69,67,84,69,68,32,83,67,82,73,80,84),    150)
     local BtnCopy    = MakeModalBtn(string.char(67,79,80,89,32,84,79,32,67,76,73,80,66,79,65,82,68),       190)
@@ -2103,8 +2104,8 @@ local BtnExecute = MakeModalBtn(string.char(69,88,69,67,85,84,69,32,83,69,76,69,
             if c:IsA(string.char(70,114,97,109,101)) then c:Destroy() end
         end
     end
-
-local function MakeCard(data, idx)
+    
+    local function MakeCard(data, idx)
         local card = Instance.new(string.char(70,114,97,109,101))
         card.Size = UDim2.new(1, 0, 0, 72)
         card.BackgroundColor3 = C.Card
@@ -2281,8 +2282,8 @@ local function MakeCard(data, idx)
             dragging = false
         end
     end)
-
-UserInputService.InputChanged:Connect(function(inp)
+    
+    UserInputService.InputChanged:Connect(function(inp)
         if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or
                          inp.UserInputType == Enum.UserInputType.Touch) then
             local delta = inp.Position - dragStart
@@ -2874,7 +2875,7 @@ local function jogarComSofa(alvo)
             end
         end
         humano:UnequipTools()
-rep.RE:FindFirstChild(string.char(49,84,111,111,49,108)):InvokeServer(string.char(80,105,99,107,105,110,103,84,111,111,108,115), string.char(67,111,117,99,104))
+        rep.RE:FindFirstChild(string.char(49,84,111,111,49,108)):InvokeServer(string.char(80,105,99,107,105,110,103,84,111,111,108,115), string.char(67,111,117,99,104))
         llIllIll = false
     end)
     while jogando do task.wait() end
@@ -3272,8 +3273,7 @@ local function enableSkybox()
     }
     task.wait(0.2)
     pcall(function()
-
-game:GetService(string.char(82,101,112,108,105,99,97,116,101,100,83,116,111,114,97,103,101)).Remotes.ChangeCharacterBody:InvokeServer({
+        game:GetService(string.char(82,101,112,108,105,99,97,116,101,100,83,116,111,114,97,103,101)).Remotes.ChangeCharacterBody:InvokeServer({
             [1] = 100839513065432
         })
     end)
@@ -3443,8 +3443,8 @@ local function disableAntiSit()
         addLog(string.char(65,110,116,105,45,83,105,116,32,105,115,32,110,111,116,32,101,110,97,98,108,101,100))
         return
     end
-
-if IlIlIlII then
+    
+    if IlIlIlII then
         IlIlIlII:Disconnect()
         IlIlIlII = nil
     end
@@ -3576,8 +3576,8 @@ local function showCommandsPanel()
     for _, child in pairs(IlIlllII:GetChildren()) do
         if child:IsA(string.char(70,114,97,109,101)) then child:Destroy() end
     end
-
-local commands = {
+    
+    local commands = {
         {cmd = string.char(102,108,105,110,103), args = string.char(60,73,108,73,108,73,108,73,108,62), desc = string.char(70,108,105,110,103,32,97,32,73,108,73,108,73,108,73,108), rank = string.char(77,111,100,101,114,97,116,111,114), rankLevel = 60},
         {cmd = string.char(101,115,112), desc = string.char(69,110,97,98,108,101,32,69,83,80), rank = string.char(83,116,97,102,102), rankLevel = 50},
         {cmd = string.char(117,110,101,115,112), desc = string.char(68,105,115,97,98,108,101,32,69,83,80), rank = string.char(83,116,97,102,102), rankLevel = 50},
@@ -3618,8 +3618,8 @@ local commands = {
         {cmd = string.char(114,101,115,101,116), desc = string.char(82,101,115,101,116,32,99,104,97,114,97,99,116,101,114), rank = string.char(77,101,109,98,101,114), rankLevel = 10},
         {cmd = string.char(99,109,100,115,47,99,111,109,109,97,110,100,115), desc = string.char(83,104,111,119,32,116,104,105,115,32,108,105,115,116), rank = string.char(77,101,109,98,101,114), rankLevel = 10},
     }
-
-table.sort(commands, function(a, b)
+    
+    table.sort(commands, function(a, b)
         return a.rankLevel > b.rankLevel
     end)
     
@@ -3764,7 +3764,7 @@ elseif command == string.char(117,110,108,111,111,112,107,105,108,108) then
         llIlIlII = llIlIlII + 1
         llIlIlII.Text = tostring(llIlIlII)
 
-elseif command == string.char(115,112,105,110) or command == string.char(117,110,115,112,105,110) then
+    elseif command == string.char(115,112,105,110) or command == string.char(117,110,115,112,105,110) then
     if not hasPermission(IlIlIlIl, string.char(83,116,97,102,102)) then
         addLog(string.char(80,101,114,109,105,115,115,105,111,110,32,100,101,110,105,101,100,58,32,83,116,97,102,102,32,114,101,113,117,105,114,101,100))
         return
@@ -3877,7 +3877,7 @@ elseif command == string.char(115,112,105,110) or command == string.char(117,110
             addLog(string.char(85,115,97,103,101,58,32) .. lIlIlIlI .. string.char(98,114,105,110,103,32,60,117,115,101,114,110,97,109,101,32,111,114,32,110,105,99,107,110,97,109,101,62))
         end
 
-elseif command == string.char(115,101,114,118,101,114,114,97,110,107,115) then
+    elseif command == string.char(115,101,114,118,101,114,114,97,110,107,115) then
         showServerRanksPanel()
         llIlIlII = llIlIlII + 1
         llIlIlII.Text = tostring(llIlIlII)
@@ -4008,8 +4008,7 @@ elseif command == string.char(115,101,114,118,101,114,114,97,110,107,115) then
 
     elseif command == string.char(102,108,121) then
         if not hasPermission(IlIlIlIl, string.char(77,111,100,101,114,97,116,111,114)) then
-
-addLog(string.char(80,101,114,109,105,115,115,105,111,110,32,100,101,110,105,101,100,58,32,77,111,100,101,114,97,116,111,114,32,114,101,113,117,105,114,101,100))
+            addLog(string.char(80,101,114,109,105,115,115,105,111,110,32,100,101,110,105,101,100,58,32,77,111,100,101,114,97,116,111,114,32,114,101,113,117,105,114,101,100))
             return
         end
         startFly()
@@ -4191,7 +4190,7 @@ elseif command == string.char(117,110,115,107,121,98,111,120) then
             addLog(string.char(85,115,97,103,101,58,32) .. lIlIlIlI .. string.char(108,73,108,73,108,73,108,73,32,60,115,105,110,103,108,101,32,99,104,97,114,97,99,116,101,114,62))
         end
 
-elseif command == string.char(114,101,106,111,105,110) then
+    elseif command == string.char(114,101,106,111,105,110) then
         game:GetService(string.char(84,101,108,101,112,111,114,116,83,101,114,118,105,99,101)):Teleport(game.PlaceId)
 
     elseif command == string.char(114,101,115,101,116) then
